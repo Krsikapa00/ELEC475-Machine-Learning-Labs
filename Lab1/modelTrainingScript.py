@@ -2,8 +2,8 @@ import argparse
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from Lab1.model import autoencoderMLP4Layer
-from Lab1 import train
+from model import autoencoderMLP4Layer
+import train
 
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser()

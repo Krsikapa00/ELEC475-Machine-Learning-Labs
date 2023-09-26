@@ -7,7 +7,7 @@ class autoencoderMLP4Layer(nn.Module):
 
     def __init__(self, N_inputs=784, N_bottlenecks=8, N_outputs=784):
         super(autoencoderMLP4Layer, self).__init__()
-        N2 = 392
+        N2 = int(N_inputs/2)
         self.fc1 = nn.Linear(N_inputs, N2)
         self.fc2 = nn.Linear(N2, N_bottlenecks)
         self.fc3 = nn.Linear(N_bottlenecks, N2)
