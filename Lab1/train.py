@@ -49,7 +49,6 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device, 
     return final_loss
 
 
-
 if __name__ == "__main__":
     # Parse command-line arguments
     argParser = argparse.ArgumentParser()
@@ -72,7 +71,7 @@ if __name__ == "__main__":
     autoencoder = autoencoderMLP4Layer(N_bottlenecks=args.bottleneck)
     autoencoder.to(device)
     # Define optimizer and learning rate scheduler
-    optimizer = optim.Adam(autoencoder.parameters(), lr=0.0001, weight_decay=1e-4)
+    optimizer = optim.Adam(autoencoder.parameters(), lr=0.001, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model

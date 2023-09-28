@@ -1,5 +1,4 @@
 import argparse
-
 import numpy
 import torch
 from model import autoencoderMLP4Layer
@@ -27,7 +26,7 @@ def run_autoencoder(model, device, original):
     return original_img, reconstructed_img, original
 
 
-def test(model, loader, device, num_of_images=3, save_default=False):
+def test(model, loader, device, num_of_images=3):
     model.eval()
     tensors_to_print = []
 
@@ -58,14 +57,10 @@ def test(model, loader, device, num_of_images=3, save_default=False):
             plt.imshow(new_image, cmap="gray")
             counter += 2
 
-        # Save image (Default = False)
-        if save_default:
-            plt.savefig("ELEC475Lab1Part4.png")
-
         plt.show()
 
 
-def testwithNoise(model, loader, device, num_of_images=3, save_default=False):
+def testwithnoise(model, loader, device, num_of_images=3):
     images_to_print = []
     model.eval()
 
@@ -103,9 +98,6 @@ def testwithNoise(model, loader, device, num_of_images=3, save_default=False):
             plt.imshow(element[2], cmap="gray")
             counter += 3
 
-        if save_default:
-            plt.savefig("ELEC475Lab1Part5.png")
-
         plt.show()
 
 
@@ -118,7 +110,7 @@ def interpolateimages(tensor1, tensor2, steps):
     return tensor_arr
 
 
-def bottleneck_interpolation(model, train_loader, steps, device, num_of_images=3, save_default=False):
+def bottleneck_interpolation(model, train_loader, steps, device, num_of_images=3):
     model.eval()
     tensors_to_print = []
 
@@ -167,8 +159,6 @@ def bottleneck_interpolation(model, train_loader, steps, device, num_of_images=3
             plt.imshow(image2, cmap="gray")
             counter += 1
 
-        if save_default:
-            plt.savefig("ELEC475Lab1Part6.png")
 
         plt.show()
 
@@ -176,7 +166,6 @@ def bottleneck_interpolation(model, train_loader, steps, device, num_of_images=3
 if __name__ == "__main__":
     argParser = argparse.ArgumentParser()
     argParser.add_argument("-l", "--paramFile", required=True)
-    argParser.add_argument("-s", "--saveFiles", required=False, default=False)
     args = argParser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -194,8 +183,8 @@ if __name__ == "__main__":
           "along with their reconstructed matches. \n"
           "*Plot images, saved under 'ELEC475Lab1Part4.png' *")
 
-    print("Please close window when ready to move on\n\n\n\n")
-    test(autoencoder, training_data, device, args.saveFiles)
+    print("Please close window when ready to move on\n\n")
+    test(autoencoder, training_data, device)
 
     # Step 5: Image denoising, Print 3 images (original, with noise added, reconstructed output)
     print("Step 5: Image Denoising. 3 Images will be displayed in one column\n"
@@ -203,9 +192,9 @@ if __name__ == "__main__":
           "reconstructed output through the provided model\n"
           "*Plot images, saved under 'ELEC475Lab1Part5.png' *")
 
-    print("Please close window when ready to move on\n\n\n\n")
+    print("Please close window when ready to move on\n\n")
 
-    testwithNoise(autoencoder, training_data, device, args.saveFiles)
+    testwithnoise(autoencoder, training_data, device)
 
     # Step 6: Bottleneck Interpolation. Take 2 images, interpolate between them and print the tensors
     #     #         between and the 2 original images
@@ -213,8 +202,8 @@ if __name__ == "__main__":
           "Along with the results of the images being interpolated together \n"
           "*Plot images, saved under 'ELEC475Lab1Part6.png' *")
 
-    print("Please close window when ready to move on\n\n\n\n")
+    print("Please close window when ready to move on\n\n")
 
-    bottleneck_interpolation(autoencoder, training_data, 8, device, args.saveFiles)
+    bottleneck_interpolation(autoencoder, training_data, 8, device)
 
     print("Script is complete")

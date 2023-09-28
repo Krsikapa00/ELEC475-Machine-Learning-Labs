@@ -109,7 +109,7 @@ class AdaIN_net(nn.Module):
         return relu1_1, relu2_1, relu3_1, relu4_1
 
     def decode(self, X):
-        return(self.decoder(X))
+        return self.decoder(X)
 
     #   Eq. (12)
     def content_loss(self, input, target):
@@ -151,10 +151,34 @@ class AdaIN_net(nn.Module):
             #   calculate Eq. (12) and Eq. (13), and return L_c and L_s from Eq. (11)
             #
             #   your code here ...
+            style_features = self.encoder(style)
+            content_features = self.encoder(content)
+
+            # mu = mean
+                # alpha = std
+                # x = content (in adain)
+                # y = style (in adain)
+                # c = content
+                # s = style
+                # f(z) = encoder
+                # g(z) = decoder
+                # t = output of Adain
+
+            t = self.adain(content_features, style_features[-1])
+            g_t = self.decode(t)
+
+            g_t_features = self.encode(g_t)
+
+            # t = alpha * t + (1 - alpha) * content_features
+            loss_c = self.content_loss(g_t_features[-1], t)
+            loss_s = self.style_loss(g_t_features[0], style_features[0])
+
+            for i in range(1, 4):
+                loss_s += self.style_loss(g_t_features[i], style_features[i])
 
             return loss_c, loss_s
         else:  # inference
             #
             #   your code here ...
-
-            return self.decode(feat)
+            pass
+            # return self.decode(feat)
