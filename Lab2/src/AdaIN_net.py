@@ -169,7 +169,7 @@ class AdaIN_net(nn.Module):
 
             g_t_features = self.encode(g_t)
 
-            # t = alpha * t + (1 - alpha) * content_features
+            t = alpha * t + (1 - alpha) * content_features
             loss_c = self.content_loss(g_t_features[-1], t)
             loss_s = self.style_loss(g_t_features[0], style_features[0])
 

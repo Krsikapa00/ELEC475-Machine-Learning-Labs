@@ -1,95 +1,147 @@
+import datetime
 import argparse
 import os
+from pathlib import Path
+
+import torch.optim as optim
+import torch.nn as nn
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader, Dataset
+import matplotlib.pyplot as plt
+
 from PIL import Image
 import torch
 import torchvision.transforms as transforms
-from torchvision.utils import save_image
+from torchsummary import summary
 import AdaIN_net as net
 
+
+class DatasetLoader(Dataset):
+    def __init__(self, img_dir, transform):
+        super().__init__()
+
+        if not os.path.exists(img_dir):
+            raise ValueError("This directory does not exist")
+        self.img_dir = img_dir
+        self.transform = transform
+
+        self.imgs = list(Path(self.img_dir).glob('*'))
+
+    def __getitem__(self, item):
+        try:
+            img = Image.open(self.imgs[item]).convert('RGB')
+            img = self.transform(img)
+            return img
+        except Exception as e:
+            print("Caught error in loading image w index {0}\nError: {1}".format(item, e))
+            return None
+
+    def __len__(self):
+        return len(self.imgs)
+
+
+def train(n_epochs, optimizer, model, content_loader, style_loader, scheduler, device,
+          decoder_save=None, alpha=1.0, plot_file=None):
+    print("Training started")
+    model.train()
+    total_losses = []
+    content_losses = []
+    style_losses = []
+    final_loss = 0.0
+
+    for epoch in range(1, n_epochs + 1):
+        print("Epoch", epoch)
+        # Losses for current epoch
+        total_loss = 0.0
+        content_loss = 0.0
+        style_loss = 0.0
+
+        for content, style in (content_loader, style_loader):
+            content = next(iter(content)).to(device=device)
+            style = next(iter(style)).to(device=device)
+            # content = content.view(content.size(0), -1).to(device=device)  # Flatten the input images
+            # style = style.view(style.size(0), -1).to(device=device)  # Flatten the input images
+
+            loss_c, loss_s = model(content, style)
+            tot_curr_loss = loss_c + loss_s
+
+            optimizer.zero_grad()
+            tot_curr_loss.backward()
+            optimizer.step()
+
+            total_loss += tot_curr_loss.item()
+            content_loss += loss_c.item()
+            style_loss += loss_s.item()
+
+        if decoder_save is not None:
+            torch.save(model.state_dict(), decoder_save)
+
+        scheduler.step(total_loss)
+        total_losses.append(total_loss / len(content_loader))
+        content_losses.append(content_loss / len(content_loader))
+        style_losses.append(style_loss / len(style_loader))
+
+        final_loss = total_loss / len(content_loader)
+        print('{} Epoch {}, Training loss {}'.format(datetime.now(), epoch, total_loss / len(content_loader)))
+
+    summary(model, (1, 28 * 28))
+    return final_loss
+
 if __name__ == '__main__':
+    image_size = 512
+    device = 'cpu'
 
-	image_size = 512
-	device = 'cpu'
+    parser = argparse.ArgumentParser()
 
-	parser = argparse.ArgumentParser()
-	# parser.add_argument('-content_dir', type=str, help='test image')
-	# parser.add_argument('-style_image', type=str, help='style image')
-	# parser.add_argument('-encoder_file', type=str, help='encoder weight file')
-	# parser.add_argument('-decoder_file', type=str, help='decoder weight file')
-	# parser.add_argument('-alpha', type=float, default=1.0, help='Level of style transfer, value between 0 and 1')
-	# parser.add_argument('-cuda', type=str, help='[y/N]')
+    parser.add_argument('-content_dir', '--content_dir', type=str, required=True,
+                        help='Directory path to a batch of content images')
+    parser.add_argument('-style_dir', '--style_dir', type=str, required=True,
+                        help='Directory path to a batch of style images')
 
-	parser.add_argument('--content_dir', type=str, required=True,
-						help='Directory path to a batch of content images')
-	parser.add_argument('--style_dir', type=str, required=True,
-						help='Directory path to a batch of style images')
+    # training options
+    parser.add_argument('-gamma', '--gamma', default=1.0,
+                        help='Gamma value')
+    parser.add_argument('-e', '--e', type=int, default=50)
+    parser.add_argument('-b', '--b', type=int, default=8)
+    parser.add_argument('-l', '--l', help="Encoder.pth")
+    parser.add_argument('-s', '--s', help="Decoder.pth")
+    parser.add_argument('-p', '--p', help="decoder.png")
+    parser.add_argument('-cuda', '--cuda', default='Y')
+    # python3 train.py
+    # 	-content_dir. /../../../ datasets / COCO100 /
+    # 	-style_dir. /../../../ datasets / wikiart100 /
+    # 	-gamma 1.0
+    # 	-e 20
+    # 	-b 20
+    # 	-l encoder.pth
+    # 	-s decoder.pth
+    # 	-p decoder.png
+    # 	-cuda Y
 
-	# training options
-	parser.add_argument('--gamma', default=1.0,
-						help='Gamma value')
-	parser.add_argument('--e', type=int, default=50)
-	parser.add_argument('--b', type=int, default=8)
-	parser.add_argument('--l', type=int, help="Encoder.pth")
-	parser.add_argument('--s', type=int, help="Decoder.pth")
-	parser.add_argument('--p', type=int, help="decoder.png")
-	parser.add_argument('--cuda', type=int, default='Y')
-	# python3 train.py
-	# 	-content_dir. /../../../ datasets / COCO100 /
-	# 	-style_dir. /../../../ datasets / wikiart100 /
-	# 	-gamma 1.0
-	# 	-e 20
-	# 	-b 20
-	# 	-l encoder.pth
-	# 	-s decoder.pth
-	# 	-p decoder.png
-	# 	-cuda Y
+    args = parser.parse_args()
 
+    # Import the dataset
+    train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((480, 640))])
 
-	opt = parser.parse_args()
-	content_image = Image.open(opt.content_image)
-	style_image = Image.open(opt.style_image)
-	output_format = opt.content_image[opt.content_image.find('.'):]
-	decoder_file = opt.decoder_file
-	encoder_file = opt.encoder_file
-	alpha = opt.alpha
-	use_cuda = False
-	if opt.cuda == 'y' or opt.cuda == 'Y':
-		use_cuda = True
-	out_dir = './output/'
-	os.makedirs(out_dir, exist_ok=True)
+    content_data = DatasetLoader(args.content_dir, train_transform)
+    style_data = DatasetLoader(args.style_dir, train_transform)
+    content_data = DataLoader(content_data, args.b, shuffle=True)
+    style_data = DataLoader(style_data, args.b, shuffle=True)
 
-	encoder = net.encoder_decoder.encoder
-	encoder.load_state_dict(torch.load(encoder_file, map_location='cpu'))
-	decoder = net.encoder_decoder.decoder
-	decoder.load_state_dict(torch.load(decoder_file, map_location='cpu'))
-	model = net.AdaIN_net(encoder, decoder)
+    # Pass to training
+    # content_iter = iter(content_data)
+    # style_iter = iter(style_data)
 
-	model.to(device=device)
-	model.eval()
+    # Set the device (GPU if available, otherwise CPU)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # Create autoencoder
+    adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
+    adain_model.encoder.load_state_dict(torch.load(args.l))
 
-	print('model loaded OK!')
-
-	content_image = transforms.Resize(size=image_size)(content_image)
-	style_image = transforms.Resize(size=image_size)(style_image)
-
-	input_tensor = transforms.ToTensor()(content_image).unsqueeze(0)
-	style_tensor = transforms.ToTensor()(style_image).unsqueeze(0)
-
-	if torch.cuda.is_available() and use_cuda:
-		print('using cuda ...')
-		model.cuda()
-		input_tensor = input_tensor.cuda()
-		style_tensor = style_tensor.cuda()
-	else:
-		print('using cpu ...')
-
-	out_tensor = None
-	with torch.no_grad():
-		out_tensor = model(input_tensor, style_tensor, alpha)
-
-	save_file = out_dir + opt.content_image[opt.content_image.rfind('/')+1: opt.content_image.find('.')] \
-							+"_style_"+ opt.style_image[opt.style_image.rfind('/')+1: opt.style_image.find('.')] \
-							+ "_alpha_" + str(alpha) \
-							+ output_format
-	print('saving output file: ', save_file)
-	save_image(out_tensor, save_file)
+    adain_model.to(device)
+    # Define optimizer and learning rate scheduler
+    optimizer = optim.Adam(adain_model.parameters(), lr=0.001, weight_decay=1e-5)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
+                                                     min_lr=1e-4)
+    # Train the model
+    train(args.e, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
