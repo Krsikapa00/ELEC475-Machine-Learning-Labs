@@ -151,7 +151,7 @@ class AdaIN_net(nn.Module):
             #   calculate Eq. (12) and Eq. (13), and return L_c and L_s from Eq. (11)
             #
             #   your code here ...
-            style_features = self.encoder(style)
+            style_features = self.encode(style)
             content_features = self.encoder(content)
 
             # mu = mean
@@ -165,14 +165,14 @@ class AdaIN_net(nn.Module):
                 # t = output of Adain
 
             t = self.adain(content_features, style_features[-1])
-            g_t = self.decode(t)
+            t = alpha * t + (1 - alpha) * content_features
+
+            g_t = self.decoder(t)
 
             g_t_features = self.encode(g_t)
-
-            t = alpha * t + (1 - alpha) * content_features
+            # Eq 12 and 13
             loss_c = self.content_loss(g_t_features[-1], t)
             loss_s = self.style_loss(g_t_features[0], style_features[0])
-
             for i in range(1, 4):
                 loss_s += self.style_loss(g_t_features[i], style_features[i])
 

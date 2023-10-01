@@ -40,7 +40,7 @@ class DatasetLoader(Dataset):
         return len(self.imgs)
 
 
-def train(n_epochs, optimizer, model, content_loader, style_loader, scheduler, device,
+def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
           decoder_save=None, alpha=1.0, plot_file=None):
     print("Training started")
     model.train()
@@ -56,11 +56,9 @@ def train(n_epochs, optimizer, model, content_loader, style_loader, scheduler, d
         content_loss = 0.0
         style_loss = 0.0
 
-        for content, style in (content_loader, style_loader):
-            content = next(iter(content)).to(device=device)
-            style = next(iter(style)).to(device=device)
-            # content = content.view(content.size(0), -1).to(device=device)  # Flatten the input images
-            # style = style.view(style.size(0), -1).to(device=device)  # Flatten the input images
+        for batch in range(n_batches):
+            content = next(iter(content_loader)).to(device=device)
+            style = next(iter(style_loader)).to(device=device)
 
             loss_c, loss_s = model(content, style)
             tot_curr_loss = loss_c + loss_s
@@ -72,6 +70,7 @@ def train(n_epochs, optimizer, model, content_loader, style_loader, scheduler, d
             total_loss += tot_curr_loss.item()
             content_loss += loss_c.item()
             style_loss += loss_s.item()
+            print('Batch #{}/{} '.format(batch, n_batches))
 
         if decoder_save is not None:
             torch.save(model.state_dict(), decoder_save)
@@ -82,7 +81,7 @@ def train(n_epochs, optimizer, model, content_loader, style_loader, scheduler, d
         style_losses.append(style_loss / len(style_loader))
 
         final_loss = total_loss / len(content_loader)
-        print('{} Epoch {}, Training loss {}'.format(datetime.now(), epoch, total_loss / len(content_loader)))
+        print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch, total_loss / len(content_loader)))
 
     summary(model, (1, 28 * 28))
     return final_loss
@@ -144,4 +143,4 @@ if __name__ == '__main__':
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
-    train(args.e, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
+    train(args.e, args.b, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
