@@ -116,6 +116,8 @@ if __name__ == '__main__':
     # 	-s decoder.pth
     # 	-p decoder.png
     # 	-cuda Y
+    torch.cuda.empty_cache()
+
 
     args = parser.parse_args()
 
@@ -132,7 +134,14 @@ if __name__ == '__main__':
     # style_iter = iter(style_data)
 
     # Set the device (GPU if available, otherwise CPU)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if torch.cuda.is_available() and args.cuda == 'Y':
+        if torch.cuda.device_count() > 1:
+            device = torch.device("cuda:1")
+        else:
+            device = torch.device("cuda:0")
+    else:
+        device = torch.device("cpu")
     # Create autoencoder
     adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
     adain_model.encoder.load_state_dict(torch.load(args.l))
