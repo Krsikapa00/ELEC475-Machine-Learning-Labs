@@ -12,32 +12,33 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import torch
 import torchvision.transforms as transforms
-from torchsummary import summary
 import AdaIN_net as net
+import custom_dataset as custData
+import time as t
 
 
-class DatasetLoader(Dataset):
-    def __init__(self, img_dir, transform):
-        super().__init__()
-
-        if not os.path.exists(img_dir):
-            raise ValueError("This directory does not exist")
-        self.img_dir = img_dir
-        self.transform = transform
-
-        self.imgs = list(Path(self.img_dir).glob('*'))
-
-    def __getitem__(self, item):
-        try:
-            img = Image.open(self.imgs[item]).convert('RGB')
-            img = self.transform(img)
-            return img
-        except Exception as e:
-            print("Caught error in loading image w index {0}\nError: {1}".format(item, e))
-            return None
-
-    def __len__(self):
-        return len(self.imgs)
+# class DatasetLoader(Dataset):
+#     def __init__(self, img_dir, transform):
+#         super().__init__()
+#
+#         if not os.path.exists(img_dir):
+#             raise ValueError("This directory does not exist")
+#         self.img_dir = img_dir
+#         self.transform = transform
+#
+#         self.imgs = list(Path(self.img_dir).glob('*'))
+#
+#     def __getitem__(self, item):
+#         try:
+#             img = Image.open(self.imgs[item]).convert('RGB')
+#             img = self.transform(img)
+#             return img
+#         except Exception as e:
+#             print("Caught error in loading image w index {0}\nError: {1}".format(item, e))
+#             return None
+#
+#     def __len__(self):
+#         return len(self.imgs)
 
 
 def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
@@ -48,6 +49,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
     content_losses = []
     style_losses = []
     final_loss = 0.0
+    t_1 = t.time()
 
     for epoch in range(1, n_epochs + 1):
         print("Epoch", epoch)
@@ -55,8 +57,11 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         total_loss = 0.0
         content_loss = 0.0
         style_loss = 0.0
+        t_2 = t.time()
 
         for batch in range(n_batches):
+            t_3 = t.time()
+
             content = next(iter(content_loader)).to(device=device)
             style = next(iter(style_loader)).to(device=device)
 
@@ -70,7 +75,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             total_loss += tot_curr_loss.item()
             content_loss += loss_c.item()
             style_loss += loss_s.item()
-            print('Batch #{}/{} '.format(batch, n_batches))
+            print('Batch #{}/{}         Time: {}'.format(batch, n_batches, (t.time() - t_3)))
 
         if decoder_save is not None:
             torch.save(model.state_dict(), decoder_save)
@@ -81,9 +86,9 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         style_losses.append(style_loss / len(style_loader))
 
         final_loss = total_loss / len(content_loader)
-        print('{} Epoch {}, Training loss {}'.format(datetime.datetime.now(), epoch, total_loss / len(content_loader)))
+        print('Epoch {}, Training loss {}, Time  {}'.format(epoch, total_loss / len(content_loader),(t.time() - t_1)))
 
-    summary(model, (1, 28 * 28))
+    # summary(model, (1, 28 * 28))
     return final_loss
 
 if __name__ == '__main__':
@@ -118,14 +123,16 @@ if __name__ == '__main__':
     # 	-cuda Y
     torch.cuda.empty_cache()
 
-
     args = parser.parse_args()
 
     # Import the dataset
     train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((480, 640))])
 
-    content_data = DatasetLoader(args.content_dir, train_transform)
-    style_data = DatasetLoader(args.style_dir, train_transform)
+    content_data = custData.custom_dataset(args.content_dir, train_transform)
+    style_data = custData.custom_dataset(args.style_dir, train_transform)
+
+    num_batches = len(content_data) / args.b
+
     content_data = DataLoader(content_data, args.b, shuffle=True)
     style_data = DataLoader(style_data, args.b, shuffle=True)
 
@@ -152,4 +159,4 @@ if __name__ == '__main__':
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
-    train(args.e, args.b, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
+    train(args.e, num_batches, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
