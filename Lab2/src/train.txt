@@ -3,3 +3,6 @@ python3 train.py -content_dir ./../../../datasets/COCO100/ -style_dir ./../../..
 
 
 python ./src/train.py -content_dir ./images/COCO100/ -style_dir ./images/wikiart100/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder.pth -p decoder.png -cuda N
+
+#Colab
+python train.py -content_dir ./ELEC475_data/COCO10k/ -style_dir ./ELEC475_data/wikiart10k/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder10k.pth -p decoder10k.png -cuda Y
