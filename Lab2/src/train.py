@@ -1,5 +1,6 @@
 import datetime
 import argparse
+import pickle
 import os
 from pathlib import Path
 
@@ -17,32 +18,8 @@ import custom_dataset as custData
 import time as t
 
 
-# class DatasetLoader(Dataset):
-#     def __init__(self, img_dir, transform):
-#         super().__init__()
-#
-#         if not os.path.exists(img_dir):
-#             raise ValueError("This directory does not exist")
-#         self.img_dir = img_dir
-#         self.transform = transform
-#
-#         self.imgs = list(Path(self.img_dir).glob('*'))
-#
-#     def __getitem__(self, item):
-#         try:
-#             img = Image.open(self.imgs[item]).convert('RGB')
-#             img = self.transform(img)
-#             return img
-#         except Exception as e:
-#             print("Caught error in loading image w index {0}\nError: {1}".format(item, e))
-#             return None
-#
-#     def __len__(self):
-#         return len(self.imgs)
-
-
 def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
-          decoder_save=None, alpha=1.0, plot_file=None):
+          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = True):
     print("Training started")
     model.train()
     total_losses = []
@@ -78,7 +55,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             print('Batch #{}/{}         Time: {}'.format(batch, n_batches, (t.time() - t_3)))
 
         if decoder_save is not None:
-            torch.save(model.state_dict(), decoder_save)
+            torch.save(model.state_dict(), (str(epoch) + '_' + decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(content_loader))
@@ -86,6 +63,26 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         style_losses.append(style_loss / len(style_loader))
 
         final_loss = total_loss / len(content_loader)
+        if pickleLosses:
+            try:
+                with open("pickledLosses.pk1", 'wb') as file:
+                    pickle.dump((total_losses, content_losses, style_losses), file)
+            except Exception as e:
+                print(f"An error occurred while saving arrays: {str(e)}")
+
+        if plot_file is not None:
+            plt.figure(2, figsize=(12, 7))
+            plt.clf()
+            plt.plot(total_losses, label='Total')
+            plt.plot(style_losses, label='Style')
+            plt.plot(content_losses, label='Content')
+            plt.xlabel('epoch')
+            plt.ylabel('loss')
+            plt.legend(loc=1)
+            plt.savefig(plot_file)
+
+
+
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, total_loss / len(content_loader),(t.time() - t_1)))
 
     # summary(model, (1, 28 * 28))
@@ -131,7 +128,7 @@ if __name__ == '__main__':
     content_data = custData.custom_dataset(args.content_dir, train_transform)
     style_data = custData.custom_dataset(args.style_dir, train_transform)
 
-    num_batches = len(content_data) / args.b
+    num_batches = int(len(content_data) / args.b)
 
     content_data = DataLoader(content_data, args.b, shuffle=True)
     style_data = DataLoader(style_data, args.b, shuffle=True)
@@ -149,13 +146,15 @@ if __name__ == '__main__':
             device = torch.device("cuda:0")
     else:
         device = torch.device("cpu")
+
+    print("DEVICE USED: {}".format(device))
     # Create autoencoder
     adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
     adain_model.encoder.load_state_dict(torch.load(args.l))
 
     adain_model.to(device)
     # Define optimizer and learning rate scheduler
-    optimizer = optim.Adam(adain_model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = optim.Adam(adain_model.parameters(), lr=0.0005, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
