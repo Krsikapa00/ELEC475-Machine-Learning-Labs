@@ -4,7 +4,7 @@
 #   Adapted from:
 #       https://github.com/naoto0804/pytorch-AdaIN
 #
-
+import torch
 import torch.nn as nn
 
 class encoder_decoder:
@@ -180,5 +180,13 @@ class AdaIN_net(nn.Module):
         else:  # inference
             #
             #   your code here ...
-            pass
-            # return self.decode(feat)
+            with torch.no_grad():
+                style_features = self.encode(style)
+                content_features = self.encode(content)
+
+                t = self.adain(content_features[-1], style_features[-1])
+                t = alpha * t + (1 - alpha) * content_features[-1]
+
+                stylized_image = self.decoder(t)
+
+            return stylized_image

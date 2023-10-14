@@ -27,6 +27,10 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
     style_losses = []
     final_loss = 0.0
     t_1 = t.time()
+
+    if decoder_save is not None:
+        torch.save(model.decoder.state_dict(), (str(starting_epoch) + 'a_' + decoder_save))
+    # loading_saved pickle data
     if pickleLosses is not None:
         try:
             with open(pickleLosses, 'rb') as file:
@@ -66,7 +70,8 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             print('Batch #{}/{}         Time: {}'.format(batch, n_batches, (t.time() - t_3)))
 
         if decoder_save is not None:
-            torch.save(model.state_dict(), (str(epoch) + '_' + decoder_save))
+            torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
+            print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(content_loader))
@@ -115,7 +120,7 @@ if __name__ == '__main__':
                         help='Gamma value')
     parser.add_argument('-e', '--e', type=int, default=50)
     parser.add_argument('-b', '--b', type=int, default=8)
-    parser.add_argument('-l', '--l', help="Encoder.pth")
+    parser.add_argument('-l', '--l', help="Encoder.pth", required=True)
     parser.add_argument('-s', '--s', help="Decoder.pth")
     parser.add_argument('-p', '--p', help="decoder.png")
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
@@ -164,13 +169,16 @@ if __name__ == '__main__':
 
     print("DEVICE USED: {}".format(device))
     # Create autoencoder
-    adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
-    # adain_model.encoder.load_state_dict(torch.load('3_decoder.pth'))
+    decoder = net.encoder_decoder.decoder
+    encoder = net.encoder_decoder.encoder
+    encoder.load_state_dict(torch.load(args.l))
+
     if args.starting_decoder is not None:
-        adain_model.load_state_dict(torch.load('3_decoder.pth'))
+        decoder.load_state_dict(torch.load(args.starting_decoder))
+        # adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
+        # adain_model.load_state_dict((torch.load(args.starting_decoder)))
 
-
-
+    adain_model = net.AdaIN_net(encoder, decoder)
     adain_model.to(device)
     # Define optimizer and learning rate scheduler
     optimizer = optim.Adam(adain_model.parameters(), lr=0.0005, weight_decay=1e-5)
