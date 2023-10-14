@@ -19,16 +19,27 @@ import time as t
 
 
 def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
-          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = True):
-    print("Training started")
+          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = None, starting_epoch = 1):
+
     model.train()
     total_losses = []
     content_losses = []
     style_losses = []
     final_loss = 0.0
     t_1 = t.time()
+    if pickleLosses is not None:
+        try:
+            with open(pickleLosses, 'rb') as file:
+                loaded_losses = pickle.load(file)
+                (total_losses, content_losses, style_losses) = loaded_losses
+                print("Loaded saved losses from file successfully: \n{} \n{} \n{}".format(total_losses, content_losses, style_losses))
+        except Exception as e:
+            print(f"An error occurred while saving arrays: {str(e)}")
 
-    for epoch in range(1, n_epochs + 1):
+    print("Training started at Epoch {}".format(starting_epoch))
+
+
+    for epoch in range(starting_epoch, n_epochs + 1):
         print("Epoch", epoch)
         # Losses for current epoch
         total_loss = 0.0
@@ -63,9 +74,9 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         style_losses.append(style_loss / len(style_loader))
 
         final_loss = total_loss / len(content_loader)
-        if pickleLosses:
+        if pickleLosses is not None:
             try:
-                with open("pickledLosses.pk1", 'wb') as file:
+                with open(pickleLosses, 'wb') as file:
                     pickle.dump((total_losses, content_losses, style_losses), file)
             except Exception as e:
                 print(f"An error occurred while saving arrays: {str(e)}")
@@ -81,12 +92,12 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             plt.legend(loc=1)
             plt.savefig(plot_file)
 
+        print('Epoch {}, Training loss {}, Time  {}'.format(epoch, total_loss / len(content_loader),(t.time() - t_2)))
 
+    print('Total Training loss {}, Time  {}'.format(final_loss, (t.time() - t_1)))
 
-        print('Epoch {}, Training loss {}, Time  {}'.format(epoch, total_loss / len(content_loader),(t.time() - t_1)))
-
-    # summary(model, (1, 28 * 28))
     return final_loss
+
 
 if __name__ == '__main__':
     image_size = 512
@@ -107,6 +118,10 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--l', help="Encoder.pth")
     parser.add_argument('-s', '--s', help="Decoder.pth")
     parser.add_argument('-p', '--p', help="decoder.png")
+    parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
+    parser.add_argument('-starting_decoder', '--starting_decoder', help="#_decoder.pth")
+    parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
+
     parser.add_argument('-cuda', '--cuda', default='Y')
     # python3 train.py
     # 	-content_dir. /../../../ datasets / COCO100 /
@@ -150,7 +165,11 @@ if __name__ == '__main__':
     print("DEVICE USED: {}".format(device))
     # Create autoencoder
     adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
-    adain_model.encoder.load_state_dict(torch.load(args.l))
+    # adain_model.encoder.load_state_dict(torch.load('3_decoder.pth'))
+    if args.starting_decoder is not None:
+        adain_model.load_state_dict(torch.load('3_decoder.pth'))
+
+
 
     adain_model.to(device)
     # Define optimizer and learning rate scheduler
@@ -158,4 +177,5 @@ if __name__ == '__main__':
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
-    train(args.e, num_batches, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0, args.p)
+    train(args.e, num_batches, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0,
+          args.p, starting_epoch=args.starting_epoch, pickleLosses=args.starting_pickle)
