@@ -19,7 +19,7 @@ import time as t
 
 
 def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
-          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = None, starting_epoch = 1):
+          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = None, starting_epoch = 1, starting_batch = 0):
 
     model.train()
     total_losses = []
@@ -28,8 +28,6 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
     final_loss = 0.0
     t_1 = t.time()
 
-    if decoder_save is not None:
-        torch.save(model.decoder.state_dict(), (str(starting_epoch) + 'a_' + decoder_save))
     # loading_saved pickle data
     if pickleLosses is not None:
         try:
@@ -51,7 +49,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         style_loss = 0.0
         t_2 = t.time()
 
-        for batch in range(n_batches):
+        for batch in range(starting_batch, n_batches):
             t_3 = t.time()
 
             content = next(iter(content_loader)).to(device=device)
@@ -69,9 +67,9 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             style_loss += loss_s.item()
             print('Batch #{}/{}         Time: {}'.format(batch, n_batches, (t.time() - t_3)))
 
-        if decoder_save is not None:
-            torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
-            print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
+            if decoder_save is not None:
+                torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
+                print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(content_loader))
@@ -126,6 +124,7 @@ if __name__ == '__main__':
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
     parser.add_argument('-starting_decoder', '--starting_decoder', help="#_decoder.pth")
     parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
+    parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
 
     parser.add_argument('-cuda', '--cuda', default='Y')
     # python3 train.py
@@ -158,7 +157,7 @@ if __name__ == '__main__':
     # style_iter = iter(style_data)
 
     # Set the device (GPU if available, otherwise CPU)
-
+    print("Cuddda: {}     {}".format(torch.cuda.is_available(), torch.cuda.device_count()))
     if torch.cuda.is_available() and args.cuda == 'Y':
         if torch.cuda.device_count() > 1:
             device = torch.device("cuda:1")
@@ -185,5 +184,5 @@ if __name__ == '__main__':
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
-    train(args.e, num_batches, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, 1.0,
+    train(args.e, num_batches, optimizer, adain_model, content_data, style_data, scheduler, device, args.s, args.gamma,
           args.p, starting_epoch=args.starting_epoch, pickleLosses=args.starting_pickle)
