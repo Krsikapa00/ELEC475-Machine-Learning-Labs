@@ -19,7 +19,7 @@ import time as t
 
 
 def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, scheduler, device,
-          decoder_save=None, alpha=1.0, plot_file=None, pickleLosses = None, starting_epoch = 1, starting_batch = 0):
+          decoder_save=None, gamma=1.0, plot_file=None, pickleLosses = None, starting_epoch = 1, starting_batch = 0):
 
     model.train()
     total_losses = []
@@ -36,7 +36,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
                 (total_losses, content_losses, style_losses) = loaded_losses
                 print("Loaded saved losses from file successfully: \n{} \n{} \n{}".format(total_losses, content_losses, style_losses))
         except Exception as e:
-            print(f"An error occurred while saving arrays: {str(e)}")
+            print(f"An error occurred while loading arrays: {str(e)}")
 
     print("Training started at Epoch {}".format(starting_epoch))
 
@@ -56,7 +56,7 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             style = next(iter(style_loader)).to(device=device)
 
             loss_c, loss_s = model(content, style)
-            tot_curr_loss = loss_c + loss_s
+            tot_curr_loss = loss_c + (gamma * loss_s)
 
             optimizer.zero_grad()
             tot_curr_loss.backward()
@@ -67,9 +67,9 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
             style_loss += loss_s.item()
             print('Batch #{}/{}         Time: {}'.format(batch, n_batches, (t.time() - t_3)))
 
-            if decoder_save is not None:
-                torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
-                print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
+        if decoder_save is not None:
+            torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
+            print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(content_loader))
@@ -77,12 +77,16 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
         style_losses.append(style_loss / len(style_loader))
 
         final_loss = total_loss / len(content_loader)
+        pickleSave = "pickled_dump.pk1"
         if pickleLosses is not None:
-            try:
-                with open(pickleLosses, 'wb') as file:
-                    pickle.dump((total_losses, content_losses, style_losses), file)
-            except Exception as e:
-                print(f"An error occurred while saving arrays: {str(e)}")
+            pickleSave = pickleLosses
+
+        try:
+            with open(pickleSave, 'wb') as file:
+                pickle.dump((total_losses, content_losses, style_losses), file)
+                print("Saved losses to '{}'".format(pickleSave))
+        except Exception as e:
+            print(f"An error occurred while saving arrays: {str(e)}")
 
         if plot_file is not None:
             plt.figure(2, figsize=(12, 7))
@@ -103,6 +107,8 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
 
 
 if __name__ == '__main__':
+
+
     image_size = 512
     device = 'cpu'
 
@@ -123,7 +129,6 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--p', help="decoder.png")
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
     parser.add_argument('-starting_decoder', '--starting_decoder', help="#_decoder.pth")
-    parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
     parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
 
     parser.add_argument('-cuda', '--cuda', default='Y')
