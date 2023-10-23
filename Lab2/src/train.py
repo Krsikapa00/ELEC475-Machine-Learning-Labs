@@ -1,16 +1,9 @@
-import datetime
 import argparse
 import pickle
-import os
-from pathlib import Path
 
 import torch.optim as optim
-import torch.nn as nn
-from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-
-from PIL import Image
 import torch
 import torchvision.transforms as transforms
 import AdaIN_net as net
@@ -108,7 +101,6 @@ def train(n_epochs, n_batches, optimizer, model, content_loader, style_loader, s
 
 if __name__ == '__main__':
 
-
     image_size = 512
     device = 'cpu'
 
@@ -118,33 +110,25 @@ if __name__ == '__main__':
                         help='Directory path to a batch of content images')
     parser.add_argument('-style_dir', '--style_dir', type=str, required=True,
                         help='Directory path to a batch of style images')
-
     # training options
     parser.add_argument('-gamma', '--gamma', default=1.0,
                         help='Gamma value')
     parser.add_argument('-e', '--e', type=int, default=50)
     parser.add_argument('-b', '--b', type=int, default=8)
+    parser.add_argument('-lr', '--lr', type=float, default=0.001)
     parser.add_argument('-l', '--l', help="Encoder.pth", required=True)
     parser.add_argument('-s', '--s', help="Decoder.pth")
     parser.add_argument('-p', '--p', help="decoder.png")
+    parser.add_argument('-cuda', '--cuda', default='Y')
+
+    # Splitting up training options
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
     parser.add_argument('-starting_decoder', '--starting_decoder', help="#_decoder.pth")
     parser.add_argument('-starting_pickle', '--starting_pickle', help="pickledLosses.pk1", default=None)
 
-    parser.add_argument('-cuda', '--cuda', default='Y')
-    # python3 train.py
-    # 	-content_dir. /../../../ datasets / COCO100 /
-    # 	-style_dir. /../../../ datasets / wikiart100 /
-    # 	-gamma 1.0
-    # 	-e 20
-    # 	-b 20
-    # 	-l encoder.pth
-    # 	-s decoder.pth
-    # 	-p decoder.png
-    # 	-cuda Y
-    torch.cuda.empty_cache()
-
     args = parser.parse_args()
+
+    torch.cuda.empty_cache()
 
     # Import the dataset
     train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((480, 640))])
@@ -156,10 +140,6 @@ if __name__ == '__main__':
 
     content_data = DataLoader(content_data, args.b, shuffle=True)
     style_data = DataLoader(style_data, args.b, shuffle=True)
-
-    # Pass to training
-    # content_iter = iter(content_data)
-    # style_iter = iter(style_data)
 
     # Set the device (GPU if available, otherwise CPU)
     print("Cuddda: {}     {}".format(torch.cuda.is_available(), torch.cuda.device_count()))
@@ -179,13 +159,11 @@ if __name__ == '__main__':
 
     if args.starting_decoder is not None:
         decoder.load_state_dict(torch.load(args.starting_decoder))
-        # adain_model = net.AdaIN_net(net.encoder_decoder.encoder, net.encoder_decoder.decoder)
-        # adain_model.load_state_dict((torch.load(args.starting_decoder)))
 
     adain_model = net.AdaIN_net(encoder, decoder)
     adain_model.to(device)
     # Define optimizer and learning rate scheduler
-    optimizer = optim.Adam(adain_model.parameters(), lr=0.0005, weight_decay=1e-5)
+    optimizer = optim.Adam(adain_model.parameters(), lr=args.lr, weight_decay=1e-5)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
                                                      min_lr=1e-4)
     # Train the model
