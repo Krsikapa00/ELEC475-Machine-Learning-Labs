@@ -1,0 +1,13 @@
+#	python3 train.py -content_dir ./../../../datasets/COCO10k/ -style_dir ./../../../datasets/wikiart10k/ -gamma 1.0 -e 20 -b 32 -l encoder.pth -s decoder.pth -p decoder.png
+python3 train.py -content_dir ./../../../datasets/COCO100/ -style_dir ./../../../datasets/wikiart100/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder.pth -p decoder.png -cuda Y
+
+
+python ./src/train.py -content_dir ./images/COCO100/ -style_dir ./images/wikiart100/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder.pth -p decoder.png -cuda N
+
+#Colab
+python train.py -content_dir ./ELEC475_data/COCO10k/ -style_dir ./ELEC475_data/wikiart10k/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder10k.pth -p decoder10k.png -cuda Y -starting_epoch 18 -starting_decoder 20_decoder10k.pth -starting_pickle pickledLosses.pk1
+
+
+python train.py -content_dir ./ELEC475_data/COCO1k/ -style_dir ./ELEC475_data/wikiart11k/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder1k.pth -p decoder1k.png -cuda Y -starting_epoch 12 -starting_decoder 11_decoder1k.pth -starting_pickle pickledLosses1k.pk1
+
+
