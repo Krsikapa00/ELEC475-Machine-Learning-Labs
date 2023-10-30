@@ -46,9 +46,6 @@ class encoder_decoder:
         nn.Softmax()
     )
 
-    self.fc3 = nn.Linear(N_bottleneck, N2)  # output = 1x392
-    self.fc4 = nn.Linear(N2, N_output)
-    self.input_shape = (1, 28 * 28)
 
 class vanilla_model(nn.Module):
 
@@ -72,7 +69,7 @@ class vanilla_model(nn.Module):
         #   if no decoder loaded, then initialize with random weights
         if self.decoder == None:
             # self.decoder = _decoder
-            self.decoder = encoder_decoder.decoder
+            self.decoder = encoder_decoder.frontend
             self.init_decoder_weights(mean=0.0, std=0.01)
 
         self.mse_loss = nn.MSELoss()
@@ -91,7 +88,7 @@ class vanilla_model(nn.Module):
         return self.decoder(X)
 
     def forward(self, X):
-        x_out = self.encoder(image)
+        x_out = self.encoder(X)
         print(x_out.shape)
         return self.decode(self.encode(X))
 
