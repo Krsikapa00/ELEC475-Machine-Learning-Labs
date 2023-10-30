@@ -39,9 +39,12 @@ class encoder_decoder:
         nn.ReLU(),  # relu4-1, this is the last layer used
     )
     frontend = nn.Sequential(
-        nn.Linear(4096,4096),
+        # nn.MaxPool2d((2, 2), (2, 2), (0, 0), ceil_mode=True),
+        nn.Linear(512*4*4,4096),
         nn.ReLU(),
-        nn.Linear(4096,100), #100 b/c 100 images output at output layer
+        nn.Linear(4096, 1000),
+        nn.ReLU(),
+        nn.Linear(1000,10), #100 b/c 100 images output at output layer
         #nn.ReLU(),
         nn.Softmax()
     )
@@ -88,9 +91,10 @@ class vanilla_model(nn.Module):
         return self.decoder(X)
 
     def forward(self, X):
-        x_out = self.encoder(X)
-        print(x_out.shape)
-        return self.decode(self.encode(X))
+        X = self.encoder(X)
+        output = X.view(-1, 512*4*4)
+        # print(relu_4.shape)
+        return self.decode(output)
 
 
     '''
