@@ -91,7 +91,6 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
-            break
 
         if decoder_save is not None:
             savedir = os.path.join(os.path.abspath(folder), str(epoch) + '_' + decoder_save)
@@ -154,7 +153,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
 if __name__ == '__main__':
 
-    # ssl._create_default_https_context = ssl._create_unverified_context
+    ssl._create_default_https_context = ssl._create_unverified_context
 
     device = 'cpu'
     # Setup parser
