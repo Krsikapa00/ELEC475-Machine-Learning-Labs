@@ -13,9 +13,43 @@ import time as t
 
 import vanilla_model as vanilla
 
+def get_output_accuracy(pred, confirmed, top_res=(1,)):
+    max_num_results = max(top_res) #get highest result looking for
+    data_size = confirmed.size(0)
+
+    pred_values, pred_indx = pred.topk(k=max_num_results, dim=1)
+    pred_indx = pred_indx.t()
+#   Reshape confirmed indxs
+    confirmed_indx_reshape = confirmed.view(1, -1).expand_as(pred_indx)
+    answers = pred_indx == confirmed_indx_reshape
+
+    top_res_acc = []
+    for k in top_res:
+        temp_answers = answers[:k] #limit each image answer to k values
+        temp_answers = temp_answers.reshape(-1).float() #flatten to see whats right form ALL images in batch
+        temp_answers = temp_answers.float().sum(dim=0, keepdim=True)
+        curr_acc = temp_answers/data_size
+        top_res_acc.append(curr_acc)
+    return top_res_acc
+def evaluate_epoch_top1_5(model, data):
+    model.eval() #Set to evaluate
+    tot_top1_accuracy = 0
+    tot_top5_accuracy = 0
+    for imgs, labels in data:
+        with torch.no_grad():
+            output = model(imgs)
+        curr_top1, curr_top5 = get_output_accuracy(output, labels, (1, 5))
+        tot_top1_accuracy += curr_top1
+        tot_top5_accuracy += curr_top5
+    avg_top5_epoch_acc =  tot_top5_accuracy/len(data)
+    avg_top1_epoch_acc =  tot_top1_accuracy/len(data)
+    model.train() #Set to train when returning to function
+
+    return avg_top1_epoch_acc, avg_top5_epoch_acc
+
 def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
           decoder_save=None, plot_file=None, pickleLosses = None,
-          starting_epoch=1):
+          starting_epoch=1, evaluate_epochs=False, accuracy_file_name=None):
 
     model.train()
     total_losses = []
@@ -57,7 +91,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
         if decoder_save is not None:
             torch.save(model.decoder.state_dict(), (str(epoch) + '_' + decoder_save))
-            print("Saved decoder model under name: {}".format(str(epoch) + '_' + decoder_save))
+            print("Saved frontend model under name: {}".format(str(epoch) + '_' + decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(train_loader))
@@ -86,6 +120,10 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             plt.savefig(plot_file)
 
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, final_loss,(t.time() - t_2)))
+        epoch_accuracy = 0
+        if evaluate_epochs:
+            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader)
+            print("Accuracy= TOP-1:   {}  |  TOP-5:    {}".format(top_1_acc, top_5_acc))
 
     print('Total Training loss {}, Time  {}'.format(final_loss, (t.time() - t_1)))
 
@@ -105,11 +143,16 @@ if __name__ == '__main__':
     # training options
 
     parser.add_argument('-e', '--e', type=int, default=50)
-    parser.add_argument('-b', '--b', type=int, default=8)
+    parser.add_argument('-b', '--b', type=int, default=8, help="Batch size")
     parser.add_argument('-l', '--l', help="Encoder.pth", required=True)
     parser.add_argument('-s', '--s', help="Decoder.pth")
     parser.add_argument('-p', '--p', help="decoder.png")
     parser.add_argument('-cuda', '--cuda', default='Y')
+
+    parser.add_argument('-opt', '--opt', type=int)
+    parser.add_argument('-lr', '--lr', type=float, default=0.001)
+    parser.add_argument('-minlr', '--minlr', type=float, default=0.001)
+    parser.add_argument('-prefix', '--prefix', help="File name prefix to use for model, plot, pickle files saved")
 
     # Optional training parameters (when need to start between epochs)
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
@@ -150,4 +193,4 @@ if __name__ == '__main__':
                                                      min_lr=1e-4)
     # Train the model
     train(args.e, optimizer, vanilla_model, loss_fn, cifar_data, scheduler, device, args.s,
-          args.p, pickleLosses=args.starting_pickle)
+          args.p, pickleLosses=args.starting_pickle, evaluate_epochs=True)
