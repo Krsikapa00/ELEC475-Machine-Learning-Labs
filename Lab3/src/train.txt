@@ -1,15 +1,16 @@
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_1 -lr 0.0001 -minlr 0.0005 -b 1024
 
-#	python3 train.py -content_dir ./../../../datasets/COCO10k/ -style_dir ./../../../datasets/wikiart10k/ -gamma 1.0 -e 20 -b 32 -l encoder.pth -s decoder.pth -p decoder.png
-python3 train.py -content_dir ./../../../datasets/COCO100/ -style_dir ./../../../datasets/wikiart100/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder.pth -p decoder.png -cuda Y
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_3 -lr 0.005 -b 1024 -opt 1 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_4 -lr 0.0005 -b 1024 -opt 1 -frontend 2
 
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_2 -lr 0.00001 -momentum 0.7 -b 1024 -opt 0 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_3 -lr 0.005 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_4 -lr 0.0005 -b 1024 -opt 1 -frontend 1
 
-python ./src/train.py -content_dir ./images/COCO100/ -style_dir ./images/wikiart100/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder.pth -p decoder.png -cuda N
-
-#Colab
-python train.py -content_dir ./ELEC475_data/COCO10k/ -style_dir ./ELEC475_data/wikiart10k/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder10k.pth -p decoder10k.png -cuda Y -starting_epoch 18 -starting_decoder 20_decoder10k.pth -starting_pickle pickledLosses.pk1
-
-
-python train.py -content_dir ./ELEC475_data/COCO1k/ -style_dir ./ELEC475_data/wikiart11k/ -gamma 1.0 -e 20 -b 20 -l encoder.pth -s decoder1k.pth -p decoder1k.png -cuda Y -starting_epoch 12 -starting_decoder 11_decoder1k.pth -starting_pickle pickledLosses1k.pk1
-
-
-
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_3 -lr 0.005 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 0

@@ -43,7 +43,23 @@ class encoder_decoder:
         nn.ReLU(),
         nn.Linear(256,10), #100 b/c 100 images output at output layer
         #nn.ReLU(),
-        nn.Softmax()
+        nn.Softmax(dim=1)
+    )
+    frontend1 = nn.Sequential(
+        nn.Linear(512 * 4 * 4, 512),
+        nn.ReLU(),
+        nn.Linear(512, 10),  # 100 b/c 100 images output at output layer
+        # nn.ReLU(),
+        nn.Softmax(dim=1)
+    )
+    frontend2 = nn.Sequential(
+        nn.Linear(512 * 4 * 4, 256),
+        nn.ReLU(),
+        nn.Linear(256, 100),
+        nn.ReLU(),
+        nn.Linear(100, 10),  # 100 b/c 100 images output at output layer
+        # nn.ReLU(),
+        nn.Softmax(dim=1)
     )
 
 
