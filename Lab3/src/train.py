@@ -32,11 +32,14 @@ def get_output_accuracy(pred, confirmed, top_res=(1,)):
         curr_acc = temp_answers/data_size
         top_res_acc.append(curr_acc)
     return top_res_acc
-def evaluate_epoch_top1_5(model, data):
+def evaluate_epoch_top1_5(model, data, device):
     model.eval() #Set to evaluate
     tot_top1_accuracy = 0
     tot_top5_accuracy = 0
     for imgs, labels in data:
+        imgs = imgs.to(device)
+        labels = labels.to(device)
+
         with torch.no_grad():
             output = model(imgs)
         curr_top1, curr_top5 = get_output_accuracy(output, labels, (1, 5))
@@ -126,7 +129,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, final_loss,(t.time() - t_2)))
         epoch_accuracy = 0
         if evaluate_epochs:
-            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader)
+            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader, device)
             total_top1_accuracy.append(float(top_1_acc))
             total_top5_accuracy.append(float(top_5_acc))
             print("Accuracy= TOP-1:   {}  |  TOP-5:    {}".format(top_1_acc, top_5_acc))
@@ -226,6 +229,8 @@ if __name__ == '__main__':
         frontend = vanilla.encoder_decoder.frontend1
     elif args.frontend == 2:
         frontend = vanilla.encoder_decoder.frontend2
+    elif args.frontend == 3:
+        frontend = vanilla.encoder_decoder.frontend3
     else:
         frontend = vanilla.encoder_decoder.frontend
 

@@ -1,16 +1,22 @@
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_1 -lr 0.0001 -minlr 0.0005 -b 1024
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_1 -lr 0.0001 -minlr 0.0005 -b 1024
 
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_3 -lr 0.005 -b 1024 -opt 1 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_2_4 -lr 0.0005 -b 1024 -opt 1 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_3 -lr 0.0003 -b 1024 -opt 1 -frontend 2
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_4 -lr 0.0005 -b 1024 -opt 1 -frontend 2
 
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_2 -lr 0.00001 -momentum 0.7 -b 1024 -opt 0 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_3 -lr 0.005 -b 1024 -opt 1 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_1_4 -lr 0.0005 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_2 -lr 0.00001 -momentum 0.7 -b 1024 -opt 0 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_3 -lr 0.0003 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_4 -lr 0.0005 -b 1024 -opt 1 -frontend 1
 
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_3 -lr 0.005 -b 1024 -opt 1 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda N -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_3 -lr 0.0003 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 0
+
+
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 3
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 3
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_3 -lr 0.0003 -b 1024 -opt 1 -frontend 3
+python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 3
