@@ -1,22 +1,29 @@
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_1 -lr 0.0001 -minlr 0.0005 -b 1024
+        Out folder naming format = cifar_A_B_C, A = 10 or 100 (cifar10...), B = frontend used, C = epochs
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_0_50 -lr 0.0003 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_1_50 -lr 0.0003 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_2_50 -lr 0.0003 -b 1024 -opt 1 -frontend 2
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_3_50 -lr 0.0003 -b 1024 -opt 1 -frontend 3
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_4_50 -lr 0.0003 -b 1024 -opt 1 -frontend 4
 
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_3 -lr 0.0003 -b 1024 -opt 1 -frontend 2
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_2_4 -lr 0.0005 -b 1024 -opt 1 -frontend 2
-
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_2 -lr 0.00001 -momentum 0.7 -b 1024 -opt 0 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_3 -lr 0.0003 -b 1024 -opt 1 -frontend 1
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_1_4 -lr 0.0005 -b 1024 -opt 1 -frontend 1
-
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_3 -lr 0.0003 -b 1024 -opt 1 -frontend 0
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_4_1_50 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 4
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_0_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_1_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_2_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 2
 
 
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_1 -lr 0.0005 -momentum 0.7 -b 1024 -opt 0 -frontend 3
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_2 -lr 0.00001 -momentum 0.9 -b 1024 -opt 0 -frontend 3
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_3 -lr 0.0003 -b 1024 -opt 1 -frontend 3
-python .\train.py -e 20 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./run_front_0_4 -lr 0.0005 -b 1024 -opt 1 -frontend 3
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_3_100_a -lr 0.0003 -b 1024 -opt 1 -frontend 3 -sch 1 -gamma 0.7
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_4_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 4
+
+#Training w dropout
+python .\train.py -e 200 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_5_200 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1
+python .\train.py -e 200 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_6_200 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 6
+
+python .\train.py -e 100 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t1_5 -lr 0.0003 -b 512 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.00001
+python .\train.py -e 100 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t2_5 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.0001
+
+python .\train.py -e 500 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t3_5 -lr 0.00001 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.00001
+python .\train.py -e 500 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t4_5 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.0001
+python .\train.py -e 500 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t5_5 -lr 0.00001 -b 1024 -opt 1 -frontend 5 -sch 2 -minlr 0.0001 -wd 0.0001
+
+python .\train.py -e 1000 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t6_5 -lr 0.00001 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.00001
+python .\train.py -e 1000 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t7_5 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.0001

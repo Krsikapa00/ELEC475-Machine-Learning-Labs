@@ -41,39 +41,75 @@ class encoder_decoder:
     frontend = nn.Sequential(
         nn.Linear(512*4*4, 256),
         nn.ReLU(),
-        nn.Linear(256,10), #100 b/c 100 images output at output layer
+        nn.Linear(256,100), #100 b/c 100 images output at output layer
         #nn.ReLU(),
         nn.Softmax(dim=1)
     )
     frontend1 = nn.Sequential(
         nn.Linear(512 * 4 * 4, 1000),
         nn.ReLU(),
-        nn.Linear(1000, 10),  # 100 b/c 100 images output at output layer
+        nn.Linear(1000, 100),  # 100 b/c 100 images output at output layer
         # nn.ReLU(),
         nn.Softmax(dim=1)
     )
     frontend2 = nn.Sequential(
         nn.Linear(512 * 4 * 4, 256),
         nn.ReLU(),
-        nn.Linear(256, 100),
+        nn.Linear(256, 128),
         nn.ReLU(),
-        nn.Linear(100, 10),  # 100 b/c 100 images output at output layer
+        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
         # nn.ReLU(),
         nn.Softmax(dim=1)
     )
 
     frontend3 = nn.Sequential(
+        nn.Dropout(),
         nn.Linear(512 * 4 * 4, 2048),
         nn.ReLU(),
         nn.Linear(2048, 256),
         nn.ReLU(),
-        nn.Linear(256, 100),
+        nn.Linear(256, 128),
         nn.ReLU(),
-        nn.Linear(100, 10),  # 100 b/c 100 images output at output layer
+        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
         # nn.ReLU(),
         nn.Softmax(dim=1)
     )
-
+    frontend4 = nn.Sequential(
+        nn.Dropout(),
+        nn.Linear(512 * 4 * 4, 4096),
+        nn.ReLU(),
+        nn.Linear(4096, 1000),
+        nn.ReLU(),
+        nn.Linear(1000, 256),
+        nn.ReLU(),
+        nn.Linear(256, 100),  # 100 b/c 100 images output at output layer
+        # nn.ReLU(),
+        nn.Softmax(dim=1)
+    )
+    frontend5 = nn.Sequential(
+        nn.Dropout(p=0.3),
+        nn.Linear(512 * 4 * 4, 2048),
+        nn.ReLU(),
+        nn.Linear(2048, 256),
+        nn.ReLU(),
+        nn.Linear(256, 128),
+        nn.ReLU(),
+        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
+        # nn.ReLU(),
+        nn.Softmax(dim=1)
+    )
+    frontend6 = nn.Sequential(
+        nn.Dropout(p=0.3),
+        nn.Linear(512 * 4 * 4, 4096),
+        nn.ReLU(),
+        nn.Linear(4096, 1000),
+        nn.ReLU(),
+        nn.Linear(1000, 256),
+        nn.ReLU(),
+        nn.Linear(256, 100),  # 100 b/c 100 images output at output layer
+        # nn.ReLU(),
+        nn.Softmax(dim=1)
+    )
 
 class vanilla_model(nn.Module):
 

@@ -32,10 +32,12 @@ def get_output_accuracy(pred, confirmed, top_res=(1,)):
         curr_acc = temp_answers/data_size
         top_res_acc.append(curr_acc)
     return top_res_acc
-def evaluate_epoch_top1_5(model, data, device):
+def evaluate_epoch_top1_5(model, data, device, test_loader=None):
     model.eval() #Set to evaluate
     tot_top1_accuracy = 0
     tot_top5_accuracy = 0
+    test_tot_top1_accuracy = 0
+    test_tot_top5_accuracy = 0
     for imgs, labels in data:
         imgs = imgs.to(device)
         labels = labels.to(device)
@@ -45,15 +47,30 @@ def evaluate_epoch_top1_5(model, data, device):
         curr_top1, curr_top5 = get_output_accuracy(output, labels, (1, 5))
         tot_top1_accuracy += curr_top1
         tot_top5_accuracy += curr_top5
-    avg_top5_epoch_acc =  tot_top5_accuracy/len(data)
-    avg_top1_epoch_acc =  tot_top1_accuracy/len(data)
+    avg_test_top5_epoch_acc = None
+    avg_test_top1_epoch_acc = None
+    if test_loader is not None:
+        for imgs, labels in test_loader:
+            imgs = imgs.to(device)
+            labels = labels.to(device)
+
+            with torch.no_grad():
+                output = model(imgs)
+            curr_top1, curr_top5 = get_output_accuracy(output, labels, (1, 5))
+            test_tot_top1_accuracy += curr_top1
+            test_tot_top5_accuracy += curr_top5
+    avg_test_top5_epoch_acc = test_tot_top5_accuracy / len(test_loader)
+    avg_test_top1_epoch_acc = test_tot_top1_accuracy / len(test_loader)
+    avg_top5_epoch_acc = tot_top5_accuracy / len(data)
+    avg_top1_epoch_acc = tot_top1_accuracy / len(data)
+
     model.train() #Set to train when returning to function
 
-    return avg_top1_epoch_acc, avg_top5_epoch_acc
+    return avg_top1_epoch_acc, avg_top5_epoch_acc, avg_test_top1_epoch_acc, avg_test_top5_epoch_acc
 
 def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
           decoder_save=None, plot_file=None, pickleLosses = None,
-          starting_epoch=1, evaluate_epochs=False, accuracy_file_name=None, folder='./', store_data=False):
+          starting_epoch=1, evaluate_epochs=False, folder='./', store_data=False, arguments="Not provided", test_loader=None):
 
     model.train()
     total_losses = []
@@ -95,7 +112,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
 
-        if decoder_save is not None:
+        if decoder_save is not None and (epoch % 50 == 0 or epoch == n_epochs):
             savedir = os.path.join(os.path.abspath(folder), str(epoch) + '_' + decoder_save)
             torch.save(model.decoder.state_dict(), savedir)
             print("Saved frontend model under name: {}".format(savedir))
@@ -127,9 +144,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             plt.savefig(plot_save)
 
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, final_loss,(t.time() - t_2)))
-        epoch_accuracy = 0
         if evaluate_epochs:
-            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader, device)
+            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader, device, test_loader=test_loader)
             total_top1_accuracy.append(float(top_1_acc))
             total_top5_accuracy.append(float(top_5_acc))
             print("Accuracy= TOP-1:   {}  |  TOP-5:    {}".format(top_1_acc, top_5_acc))
@@ -141,6 +157,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
         print("Length: {}    {}   {}".format(total_top5_accuracy, total_top1_accuracy, total_losses))
         try:
             with open(filename, 'w') as file:
+                file.write("Training results for run with the following hyper parameters:\n{}\n".format(arguments))
                 file.write("Accuracy & loss results per Epoch: (Top 1,    Top 5,   Loss)\n")
                 for i in range(n_epochs):
                     top_1_item = total_top1_accuracy[i]
@@ -156,7 +173,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
 if __name__ == '__main__':
 
-    ssl._create_default_https_context = ssl._create_unverified_context
+    # ssl._create_default_https_context = ssl._create_unverified_context
 
     device = 'cpu'
     # Setup parser
@@ -173,10 +190,11 @@ if __name__ == '__main__':
 
     # Optional multi-version training options
     parser.add_argument('-opt', '--opt', type=int, default=0, help="optimizer to choose")
-    parser.add_argument('-sch', '--sch', type=int, default=0, help="scheduler to choose")
+    parser.add_argument('-sch', '--sch', type=int, default=-1, help="scheduler to choose")
     parser.add_argument('-frontend', '--frontend', type=int, default=0, help="frontend to choose")
 
     parser.add_argument('-lr', '--lr', type=float, default=0.001)
+    parser.add_argument('-wd', '--wd', type=float, default=0.00001)
     parser.add_argument('-minlr', '--minlr', type=float, default=0.001)
     parser.add_argument('-prefix', '--prefix', help="File name prefix to use for model, plot, pickle files saved")
     parser.add_argument('-out', '--out', default="./", help="Output folder to put all files for training run")
@@ -196,8 +214,10 @@ if __name__ == '__main__':
 
     # Import the dataset & get num of batches
     train_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    cifar_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=train_transform)
+    cifar_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=train_transform)
+    cifar_test_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=train_transform)
     cifar_data = DataLoader(cifar_dataset, batch_size=args.b, shuffle=True)
+    cifar_test_data = DataLoader(cifar_test_dataset, batch_size=args.b, shuffle=True)
 
 
     # Creating folder to store all files made during training
@@ -231,6 +251,13 @@ if __name__ == '__main__':
         frontend = vanilla.encoder_decoder.frontend2
     elif args.frontend == 3:
         frontend = vanilla.encoder_decoder.frontend3
+    elif args.frontend == 4:
+        frontend = vanilla.encoder_decoder.frontend4
+    elif args.frontend == 5:
+        frontend = vanilla.encoder_decoder.frontend5
+    elif args.frontend == 6:
+        frontend = vanilla.encoder_decoder.frontend6
+
     else:
         frontend = vanilla.encoder_decoder.frontend
 
@@ -253,9 +280,9 @@ if __name__ == '__main__':
     if args.opt == 0:
         optimizer = optim.SGD(vanilla_model.parameters(), lr=args.lr, momentum=args.momentum)
     elif args.out == 1:
-        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=1e-5)
+        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=args.wd)
     else:
-        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=1e-5)
+        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=1e-4)
 
 
     if args.sch == 0:
@@ -269,9 +296,10 @@ if __name__ == '__main__':
     elif args.sch == 1:
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.gamma)
     else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, verbose=True, factor=0.1,
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
                                                          min_lr=args.minlr)
 
     # Train the model
     train(args.e, optimizer, vanilla_model, loss_fn, cifar_data, scheduler, device, args.s,
-          args.p, pickleLosses=args.starting_pickle, evaluate_epochs=True, folder=args.out, store_data=True)
+          args.p, pickleLosses=args.starting_pickle, evaluate_epochs=True, folder=args.out, store_data=True,
+          arguments=args, test_loader=cifar_test_data)
