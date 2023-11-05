@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 import time as t
 
 import vanilla_model as vanilla
+import moded_model as moded
 
 def get_output_accuracy(pred, confirmed, top_res=(1,)):
     max_num_results = max(top_res) #get highest result looking for
@@ -76,6 +77,9 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
     total_losses = []
     total_top1_accuracy = []
     total_top5_accuracy = []
+    test_total_top1_accuracy = []
+    test_total_top5_accuracy = []
+
     final_loss = 0.0
     t_1 = t.time()
     print("\n=======================================")
@@ -145,25 +149,36 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, final_loss,(t.time() - t_2)))
         if evaluate_epochs:
-            top_1_acc, top_5_acc = evaluate_epoch_top1_5(model, train_loader, device, test_loader=test_loader)
+            top_1_acc, top_5_acc, test_top_1_acc, test_top_5_acc = evaluate_epoch_top1_5(model, train_loader, device, test_loader=test_loader)
             total_top1_accuracy.append(float(top_1_acc))
             total_top5_accuracy.append(float(top_5_acc))
-            print("Accuracy= TOP-1:   {}  |  TOP-5:    {}".format(top_1_acc, top_5_acc))
+            print("Accuracy (Training Data) = TOP-1:   {}  |  TOP-5:    {}".format(top_1_acc, top_5_acc))
+            if test_loader is not None:
+                test_total_top1_accuracy.append(float(test_top_1_acc))
+                test_total_top5_accuracy.append(float(test_top_5_acc))
+            print("Accuracy (Test Data) = TOP-1:   {}  |  TOP-5:    {}".format(test_top_1_acc, test_top_5_acc))
 
     print('Total Training loss {}, Time  {}'.format(final_loss, (t.time() - t_1)))
 
     if store_data:
         filename = os.path.join(os.path.abspath(folder), 'output_results')
-        print("Length: {}    {}   {}".format(total_top5_accuracy, total_top1_accuracy, total_losses))
+        print("Length: {}    {}   {}    {}   {}".format(total_top5_accuracy, total_top1_accuracy, test_total_top1_accuracy, test_total_top5_accuracy, total_losses))
         try:
             with open(filename, 'w') as file:
                 file.write("Training results for run with the following hyper parameters:\n{}\n".format(arguments))
-                file.write("Accuracy & loss results per Epoch: (Top 1,    Top 5,   Loss)\n")
+                if train_loader is not None: file.write("Accuracy & loss results per Epoch: (Train_Top 1,  Train_Top 5, "
+                                                        "Test_Top_1, Test_Train_5,  Loss)\n")
+                else: file.write("Accuracy & loss results per Epoch: (Top 1,    Top 5,   Loss)\n")
                 for i in range(n_epochs):
                     top_1_item = total_top1_accuracy[i]
                     top_5_item = total_top5_accuracy[i]
+                    test_top_5, test_top_1 = "", ""
+                    if train_loader is not None:
+                        test_top_1 = test_total_top1_accuracy[i]
+                        test_top_5 = test_total_top5_accuracy[i]
+
                     loss = total_losses[i]
-                    file.write("Epoch {}:  ({}   ,{},    {})\n".format(i + 1, top_1_item, top_5_item, loss))
+                    file.write("Epoch {}:  ([{},  {}],   [{},   {}],   {})\n".format(i + 1, top_1_item, top_5_item, test_top_1, test_top_5, loss))
                 file.close()
 
         except Exception as e:
@@ -182,6 +197,7 @@ if __name__ == '__main__':
                         help='Directory path to a batch of content images')
     # training options
     parser.add_argument('-e', '--e', type=int, default=50)
+    parser.add_argument('-type', '--type', type=int, default=0)
     parser.add_argument('-b', '--b', type=int, default=8, help="Batch size")
     parser.add_argument('-l', '--l', help="Encoder.pth", required=True)
     parser.add_argument('-s', '--s', help="Decoder.pth")
@@ -200,6 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('-out', '--out', default="./", help="Output folder to put all files for training run")
     parser.add_argument('-momentum', '--momentum', type=float, default=0.7)
     parser.add_argument('-gamma', '--gamma', type=float, default=0.9)
+    parser.add_argument('-dataset', '--dataset', type=int, default=1)
 
     # Optional long training options (when need to start between epochs)
     parser.add_argument('-starting_epoch', '--starting_epoch', type=int, help="3", default=1)
@@ -212,12 +229,32 @@ if __name__ == '__main__':
     print(args)
     print("")
 
+    if args.type == 0:
+        model_type = vanilla
+    else:
+        model_type = moded
+
+
+
     # Import the dataset & get num of batches
     train_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    cifar_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=train_transform)
-    cifar_test_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=train_transform)
-    cifar_data = DataLoader(cifar_dataset, batch_size=args.b, shuffle=True)
-    cifar_test_data = DataLoader(cifar_test_dataset, batch_size=args.b, shuffle=True)
+    if args.dataset == 0:
+        cifar_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=train_transform)
+        cifar_test_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True,
+                                                           transform=train_transform)
+        cifar_data = DataLoader(cifar_dataset, batch_size=args.b, shuffle=True)
+        cifar_test_data = DataLoader(cifar_test_dataset, batch_size=args.b, shuffle=True)
+        frontend = model_type.encoder_decoder.frontend_10
+
+    else:
+        cifar_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=train_transform)
+        cifar_test_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=train_transform)
+        cifar_data = DataLoader(cifar_dataset, batch_size=args.b, shuffle=True)
+        cifar_test_data = DataLoader(cifar_test_dataset, batch_size=args.b, shuffle=True)
+        frontend = model_type.encoder_decoder.frontend
+
+    encoder = vanilla.encoder_decoder.encoder
+    encoder.load_state_dict(torch.load(args.l))
 
 
     # Creating folder to store all files made during training
@@ -240,64 +277,14 @@ if __name__ == '__main__':
 
     print("Using device: {}".format(device))
 
-
-    # Create models
-    # PURELY FOR TRAINING, let me choose which frontend to use
-    if args.frontend == 0:
-        frontend = vanilla.encoder_decoder.frontend
-    elif args.frontend == 1:
-        frontend = vanilla.encoder_decoder.frontend1
-    elif args.frontend == 2:
-        frontend = vanilla.encoder_decoder.frontend2
-    elif args.frontend == 3:
-        frontend = vanilla.encoder_decoder.frontend3
-    elif args.frontend == 4:
-        frontend = vanilla.encoder_decoder.frontend4
-    elif args.frontend == 5:
-        frontend = vanilla.encoder_decoder.frontend5
-    elif args.frontend == 6:
-        frontend = vanilla.encoder_decoder.frontend6
-
-    else:
-        frontend = vanilla.encoder_decoder.frontend
-
-    # elif args.frontend == 0:
-
-    encoder = vanilla.encoder_decoder.encoder
-    encoder.load_state_dict(torch.load(args.l))
     loss_fn = nn.functional.cross_entropy
-
-    vanilla_model = vanilla.vanilla_model(encoder, frontend)
-    vanilla_model.to(device)
-
+    model = model_type.model(encoder, frontend)
+    model.to(device)
 
     # Define optimizer and learning rate scheduler
-    # TODO: Put final optimizer and scheduler below
-    # optimizer =
-    # scheduler =
-
-    # PURELY FOR TRAINING AND SWITCHING OPT AND SCHEDULERS
-    if args.opt == 0:
-        optimizer = optim.SGD(vanilla_model.parameters(), lr=args.lr, momentum=args.momentum)
-    elif args.out == 1:
-        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=args.wd)
-    else:
-        optimizer = optim.Adam(vanilla_model.parameters(), lr=args.lr, weight_decay=1e-4)
-
-
-    if args.sch == 0:
-        if args.e <= 10 and args.e > 6:
-            milestones = [int(args.e/3), int((2*args.e)/3), int(args.e)]
-        elif args.e <= 20:
-            milestones = [int(args.e/4), int((2*args.e)/4), int((3*args.e)/4), int(args.e)]
-        else:
-            milestones = [1]
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=args.gamma)
-    elif args.sch == 1:
-        scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.gamma)
-    else:
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
-                                                         min_lr=args.minlr)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
+                                                     min_lr=args.minlr)
 
     # Train the model
     train(args.e, optimizer, vanilla_model, loss_fn, cifar_data, scheduler, device, args.s,

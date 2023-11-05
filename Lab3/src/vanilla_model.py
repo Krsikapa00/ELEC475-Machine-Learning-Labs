@@ -1,7 +1,4 @@
-import torch
-import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class encoder_decoder:
@@ -45,89 +42,22 @@ class encoder_decoder:
         #nn.ReLU(),
         nn.Softmax(dim=1)
     )
-    frontend1 = nn.Sequential(
-        nn.Linear(512 * 4 * 4, 1000),
-        nn.ReLU(),
-        nn.Linear(1000, 100),  # 100 b/c 100 images output at output layer
-        # nn.ReLU(),
-        nn.Softmax(dim=1)
-    )
-    frontend2 = nn.Sequential(
+    frontend_10 = nn.Sequential(
         nn.Linear(512 * 4 * 4, 256),
         nn.ReLU(),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
+        nn.Linear(256, 10),  # 100 b/c 100 images output at output layer
         # nn.ReLU(),
         nn.Softmax(dim=1)
     )
 
-    frontend3 = nn.Sequential(
-        nn.Dropout(),
-        nn.Linear(512 * 4 * 4, 2048),
-        nn.ReLU(),
-        nn.Linear(2048, 256),
-        nn.ReLU(),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
-        # nn.ReLU(),
-        nn.Softmax(dim=1)
-    )
-    frontend4 = nn.Sequential(
-        nn.Dropout(),
-        nn.Linear(512 * 4 * 4, 4096),
-        nn.ReLU(),
-        nn.Linear(4096, 1000),
-        nn.ReLU(),
-        nn.Linear(1000, 256),
-        nn.ReLU(),
-        nn.Linear(256, 100),  # 100 b/c 100 images output at output layer
-        # nn.ReLU(),
-        nn.Softmax(dim=1)
-    )
-    frontend5 = nn.Sequential(
-        nn.Dropout(p=0.3),
-        nn.Linear(512 * 4 * 4, 2048),
-        nn.ReLU(),
-        nn.Linear(2048, 256),
-        nn.ReLU(),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Linear(128, 100),  # 100 b/c 100 images output at output layer
-        # nn.ReLU(),
-        nn.Softmax(dim=1)
-    )
-    frontend6 = nn.Sequential(
-        nn.Dropout(p=0.3),
-        nn.Linear(512 * 4 * 4, 4096),
-        nn.ReLU(),
-        nn.Linear(4096, 1000),
-        nn.ReLU(),
-        nn.Linear(1000, 256),
-        nn.ReLU(),
-        nn.Linear(256, 100),  # 100 b/c 100 images output at output layer
-        # nn.ReLU(),
-        nn.Softmax(dim=1)
-    )
-
-class vanilla_model(nn.Module):
+class model(nn.Module):
 
     def __init__(self, encoder, decoder=None):
-        super(vanilla_model, self).__init__()
+        super(model, self).__init__()
         self.encoder = encoder
         # freeze encoder weights
         for param in self.encoder.parameters():
             param.requires_grad = False
-
-
-        # need access to these intermediate encoder steps
-        # for the AdaIN computation
-        encoder_list = list(encoder.children())
-        self.encoder_stage_1 = nn.Sequential(*encoder_list[:4])  # input -> relu1_1
-        self.encoder_stage_2 = nn.Sequential(*encoder_list[4:11])  # relu1_1 -> relu2_1
-        self.encoder_stage_3 = nn.Sequential(*encoder_list[11:18])  # relu2_1 -> relu3_1
-        self.encoder_stage_4 = nn.Sequential(*encoder_list[18:31])  # relu3_1 -> relu4_1
 
         self.decoder = decoder
         #   if no decoder loaded, then initialize with random weights
@@ -141,12 +71,6 @@ class vanilla_model(nn.Module):
     def init_decoder_weights(self, mean, std):
         for param in self.decoder.parameters():
             nn.init.normal_(param, mean=mean, std=std)
-    def encode(self, X):
-        relu1_1 = self.encoder_stage_1(X)
-        relu2_1 = self.encoder_stage_2(relu1_1)
-        relu3_1 = self.encoder_stage_3(relu2_1)
-        relu4_1 = self.encoder_stage_4(relu3_1)
-        return relu1_1, relu2_1, relu3_1, relu4_1
 
     def decode(self, X): #take in the flattened image of relu4_1 feature map
         return self.decoder(X)
@@ -156,36 +80,3 @@ class vanilla_model(nn.Module):
         output = X.view(-1, 512*4*4)
         # print(relu_4.shape)
         return self.decode(output)
-
-
-    '''
-
-    def encode(self, X):
-        X = X.view(X.size(0), -1)
-        X = F.relu(self.fc1(X))
-        X = F.relu(self.fc2(X))
-        return X
-
-    def decode(self, X):
-        X = F.relu(self.fc3(X))
-        X = torch.sigmoid(self.fc4(X))
-        return X
-
-
-
-    def interpolate_points(self, p1, p2, n_steps=10):
-        # interpolate ratios between the points
-        ratios = np.linspace(0, 1, num=n_steps)
-        # linear interpolate vectors
-        vectors = list()
-        for ratio in ratios:
-            v = (1.0 - ratio) * p1 + ratio * p2
-            vectors.append(v)
-        return np.asarray(vectors)
-
-    def get_bottleneck(self, X):
-        X = X.view(1, -1)
-        X = F.relu(self.fc1(X))
-        X = F.relu(self.fc2(X))
-        return X
-        '''
