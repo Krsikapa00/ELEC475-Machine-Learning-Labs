@@ -49,7 +49,7 @@ if __name__ == '__main__':
     parser.add_argument('--decoder_file', type=str, help='decoder weight file')
     parser.add_argument('--cuda', type=str, help='[y/N]')
     parser.add_argument('-type', '--type', type=int, default=0)
-    parser.add_argument('-b', '--b', type=int, default=8)
+    parser.add_argument('-b', '--b', type=int, default=512)
     parser.add_argument('-dataset', '--dataset', type=int, default=1)
 
     opt = parser.parse_args()
