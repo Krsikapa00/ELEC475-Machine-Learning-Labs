@@ -48,8 +48,8 @@ def evaluate_epoch_top1_5(model, data, device, test_loader=None):
         curr_top1, curr_top5 = get_output_accuracy(output, labels, (1, 5))
         tot_top1_accuracy += curr_top1
         tot_top5_accuracy += curr_top5
-    avg_test_top5_epoch_acc = None
-    avg_test_top1_epoch_acc = None
+    avg_test_top5_epoch_acc = 0
+    avg_test_top1_epoch_acc = 0
     if test_loader is not None:
         for imgs, labels in test_loader:
             imgs = imgs.to(device)
@@ -117,9 +117,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
 
         if decoder_save is not None and (epoch % 50 == 0 or epoch == n_epochs):
-            savedir = os.path.join(os.path.abspath(folder), str(epoch) + '_' + decoder_save)
-            torch.save(model.decoder.state_dict(), savedir)
-            print("Saved frontend model under name: {}".format(savedir))
+            torch.save(model.decoder.state_dict(), decoder_save)
+            print("Saved frontend model under name: {}".format(decoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(train_loader))
@@ -193,35 +192,28 @@ if __name__ == '__main__':
     device = 'cpu'
     # Setup parser
     parser = argparse.ArgumentParser()
-    parser.add_argument('-dir', '--dir', type=str, required=False,
+    parser.add_argument('-dir', '--dir', type=str, required=False, default='./data',
                         help='Directory path to a batch of content images')
     # training options
     parser.add_argument('-e', '--e', type=int, default=50)
-    parser.add_argument('-type', '--type', type=int, default=0)
     parser.add_argument('-b', '--b', type=int, default=8, help="Batch size")
     parser.add_argument('-l', '--l', help="Encoder.pth", required=True)
     parser.add_argument('-s', '--s', help="Decoder.pth")
     parser.add_argument('-p', '--p', help="decoder.png")
     parser.add_argument('-cuda', '--cuda', default='Y')
+    parser.add_argument('-type', '--type', type=int, default=0)
 
-    # Optional multi-version training options
-    parser.add_argument('-opt', '--opt', type=int, default=0, help="optimizer to choose")
-    parser.add_argument('-sch', '--sch', type=int, default=-1, help="scheduler to choose")
-    parser.add_argument('-frontend', '--frontend', type=int, default=0, help="frontend to choose")
 
     parser.add_argument('-lr', '--lr', type=float, default=0.001)
     parser.add_argument('-wd', '--wd', type=float, default=0.00001)
     parser.add_argument('-minlr', '--minlr', type=float, default=0.001)
-    parser.add_argument('-prefix', '--prefix', help="File name prefix to use for model, plot, pickle files saved")
     parser.add_argument('-out', '--out', default=None, help="Output folder to put all files for training run")
-    parser.add_argument('-momentum', '--momentum', type=float, default=0.7)
     parser.add_argument('-gamma', '--gamma', type=float, default=0.9)
     parser.add_argument('-dataset', '--dataset', type=int, default=1)
 
     args = parser.parse_args()
 
     print("Beginning Training for model. Using the following parameters passed (Some default)\n")
-    print(args)
     print("")
 
     if args.type == 0:
@@ -257,7 +249,8 @@ if __name__ == '__main__':
         else:
             os.mkdir(args.out)
             print("Created folder {} to save all files made during training".format(args.out))
-
+    else:
+        args.out = "./"
 
     # Set the device (GPU if available, otherwise CPU)
     if torch.cuda.is_available() and args.cuda == 'Y':

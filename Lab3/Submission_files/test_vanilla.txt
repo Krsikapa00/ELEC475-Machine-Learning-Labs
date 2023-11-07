@@ -1,0 +1,1 @@
+python ./test.py --decoder_file ./vanilla_decoder.pth --encoder_file encoder.pth --cuda Y -type 0 -b 1024

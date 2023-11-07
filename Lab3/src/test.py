@@ -66,12 +66,18 @@ if __name__ == '__main__':
         cifar_dataset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True,
                                                      transform=train_transform)
         cifar_data = DataLoader(cifar_dataset, batch_size=opt.b, shuffle=True)
+        cifar_train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True,
+                                                            transform=train_transform)
+        cifar_train_data = DataLoader(cifar_dataset, batch_size=opt.b, shuffle=True)
         frontend = model_type.encoder_decoder.frontend_10
 
     else:
         cifar_dataset = torchvision.datasets.CIFAR100(root='./data', train=False, download=True,
                                                       transform=train_transform)
         cifar_data = DataLoader(cifar_dataset, batch_size=opt.b, shuffle=True)
+        cifar_train_dataset = torchvision.datasets.CIFAR100(root='./data', train=True, download=True,
+                                                      transform=train_transform)
+        cifar_train_data = DataLoader(cifar_train_dataset, batch_size=opt.b, shuffle=True)
         frontend = model_type.encoder_decoder.frontend
 
     decoder_file = opt.decoder_file
@@ -112,7 +118,10 @@ if __name__ == '__main__':
     out_tensor = None
     with torch.no_grad():
         top1_count = 0
+        top1_train_count = 0
         top5_count = 0
+        top5_train_count = 0
+        print("Going through TEST dataset")
 
         for idx, data in enumerate(cifar_data):
             t_3 = t.time()
@@ -120,24 +129,42 @@ if __name__ == '__main__':
             out_tensor = model(imgs)
 
             _, top1_predicted = torch.max(out_tensor, 1)
-            _, top5_predictions = torch.topk(out_tensor, 5, 1, largest=True, sorted=True)
-
-            # if labels[idx] == top1_predicted:
-            #	top1_count = top1_count + 1
-
-            # if label[idx] in top5_predictions:
-            #	top5_count = top5_count + 1
+            _, top5_predictions = torch.topk(out_tensor, 5, dim=1)
 
             top1_count += torch.sum(labels == top1_predicted).item()
 
-            for i in range(len(labels)):
-                if labels[i] in top5_predictions[i]:
-                    top5_count += 1
+            # for i in range(len(labels)):
+            #    if labels[i] in top5_predictions[i]:
+            #        top5_count += 1
+            top5_count += torch.sum(top5_predictions == labels.view(-1, 1))
 
             print('Image #{}/{}         Time: {}'.format(idx + 1, len(cifar_data), (t.time() - t_3)))
+        print("Going through training dataset")
+        for idx, data in enumerate(cifar_train_data):
+            t_3 = t.time()
+            imgs, labels = data[0].to(device), data[1].to(device)
+            out_tensor = model(imgs)
+
+            _, top1_predicted = torch.max(out_tensor, 1)
+            _, top5_predictions = torch.topk(out_tensor, 5, dim=1)
+
+            top1_train_count += torch.sum(labels == top1_predicted).item()
+
+            # for i in range(len(labels)):
+            #    if labels[i] in top5_predictions[i]:
+            #        top5_count += 1
+            top5_train_count += torch.sum(top5_predictions == labels.view(-1, 1))
+
+            print('Image #{}/{}         Time: {}'.format(idx + 1, len(cifar_train_data), (t.time() - t_3)))
 
     top1_err = 1 - top1_count / len(cifar_dataset)
     top5_err = 1 - top5_count / len(cifar_dataset)
+    top1_train_err = 1 - top1_train_count / len(cifar_train_dataset)
+    top5_train_err = 1 - top5_train_count / len(cifar_train_dataset)
 
-    print(f"Top-1 Error Rate: {top1_err * 100}%")
-    print(f"Top-5 Error Rate: {top5_err * 100}%")
+    print(f"Top-1 Test data Error Rate: {top1_err * 100}%")
+    print(f"Top-5 Test data Error Rate: {top5_err * 100}%")
+
+    print(f"Top-1 Train Data Error Rate: {top1_train_err * 100}%")
+    print(f"Top-5 Train Data Error Rate: {top5_train_err * 100}%")
+
