@@ -1,0 +1,2 @@
+python3 KittiToYodaROIs.py -i ./data/Kitti8 -o ./data/Kitti8_ROIs/train -m train
+python KittiToYodaROIs.py -i ../Kitti8 -o ../Kitti8_ROIs/train -m train
