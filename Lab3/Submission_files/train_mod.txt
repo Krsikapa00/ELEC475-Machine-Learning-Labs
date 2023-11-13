@@ -1,0 +1,1 @@
+python .\train.py -e 1000 -l encoder.pth -s mod_decoder.pth -p mod_plot_losses.jpg -cuda Y -dir ./data -lr 0.0003 -b 1024 -gamma 1 -wd 0.0001 -minlr 0.001 -type 1

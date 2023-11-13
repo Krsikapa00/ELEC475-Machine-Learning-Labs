@@ -1,0 +1,29 @@
+        Out folder naming format = cifar_A_B_C, A = 10 or 100 (cifar10...), B = frontend used, C = epochs
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_0_50 -lr 0.0003 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_1_50 -lr 0.0003 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_2_50 -lr 0.0003 -b 1024 -opt 1 -frontend 2
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_3_50 -lr 0.0003 -b 1024 -opt 1 -frontend 3
+python .\train.py -e 50 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_10_4_50 -lr 0.0003 -b 1024 -opt 1 -frontend 4
+
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_4_1_50 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 4
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_0_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 0
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_1_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 1
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_2_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 2
+
+
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_3_100_a -lr 0.0003 -b 1024 -opt 1 -frontend 3 -sch 1 -gamma 0.7
+python .\train.py -e 100 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_4_100 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 4
+
+#Training w dropout
+python .\train.py -e 200 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_5_200 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1
+python .\train.py -e 200 -l encoder.pth -s decoder_test.pth -cuda Y -dir ./data -out ./cifar_100_6_200 -lr 0.0003 -minlr 0.0005 -b 1024 -opt 1 -frontend 6
+
+#Current best modded model run (59.5% top 5)
+python .\train.py -e 1000 -l encoder.pth -s decoder.pth -cuda Y -dir ./data -out ./cifar_100_t7_5 -lr 0.0003 -b 1024 -opt 1 -frontend 5 -sch 1 -gamma 1 -wd 0.0001
+
+#Running for best vanilla frontend, mod frontend w different scheduler. Then cifar10 modded and vanila frontend runs (only 100 epochs)
+python .\train.py -e 1000 -l encoder.pth -s vanilla_decoder.pth -p mod_plot_losses.jpg -cuda Y -dir ./data -lr 0.0003 -b 1024 -gamma 1 -wd 0.0001 -minlr 0.001 -type 0
+python .\train.py -e 1000 -l encoder.pth -s mod_decoder.pth -p mod_plot_losses.jpg -cuda Y -dir ./data -lr 0.0003 -b 1024 -gamma 1 -wd 0.0001 -minlr 0.001 -type 1
+
+
+python .\train.py -e 1 -l encoder.pth -s vanilla_decoder.pth -p plot_losses.jpg -cuda Y -dir ./data -lr 0.0003 -b 1024 -gamma 1 -wd 0.0001 -minlr 0.001 -type 0

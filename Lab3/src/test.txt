@@ -1,0 +1,8 @@
+python ./test.py --decoder_file ./cifar_10_0_50/50_decoder_test.pth --encoder_file encoder.pth --cuda Y -type 0 -dataset 0 -b 1024
+
+
+python ./test.py --decoder_file ./cifar_100_vanilla/1000_decoder.pth --encoder_file encoder.pth --cuda Y -type 0 -b 1024
+python ./test.py --decoder_file ./cifar_100_modded/1000_decoder.pth --encoder_file encoder.pth --cuda Y -type 1 -b 1024
+
+python ./test.py --decoder_file ./cifar_100_modded/1000_decoder.pth --encoder_file encoder.pth --cuda Y -type 1 -b 1024
+python ./test.py --decoder_file ./cifar_100_vanilla/1000_decoder.pth --encoder_file encoder.pth --cuda Y -type 0 -b 1024
