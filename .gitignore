@@ -5,3 +5,5 @@ __pycache__/
 */backup_files
 */images
 */Kitti*/
+*/cifar*/
+*.zip

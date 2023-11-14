@@ -1,0 +1,10 @@
+#RUN FROM LAB 4 DIRECTORY
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 1 -b 48
+
+
+
+Get img number from name
+open labels.txt file from directory
+iterate through each line in file
+Find line that starts w image name
+Check what value is on the line. return the integer (0, 1)
