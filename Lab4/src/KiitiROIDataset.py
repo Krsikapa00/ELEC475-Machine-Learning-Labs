@@ -18,10 +18,19 @@ class KittiROIDataset(Dataset):
         self.transform = transform
         self.num = 0
         self.img_files = []
+        self.labels = {}
         for file in os.listdir(self.img_dir):
             if fnmatch.fnmatch(file, '*.png'):
                 self.img_files += [file]
 
+        label_path = os.path.join(self.label_dir, 'labels.txt')
+        labels_string = None
+        with open(label_path) as label_file:
+            labels_string = label_file.readlines()
+        for i in range(len(labels_string)):
+            lsplit = labels_string[i].split(' ')
+            self.labels[lsplit[0]] = int(lsplit[1])
+        print("Filled out Labels")
         self.max = len(self)
 
         # print('break 12: ', self.img_dir)
@@ -46,27 +55,12 @@ class KittiROIDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        label = None
-        label_path = os.path.join(self.label_dir, 'labels.txt')
-        foundLabel = None
-        with open(label_path) as label_file:
-            while True:
-                line = label_file.readline()
+        label = int(self.labels[self.img_files[idx]])
 
-                if line.startswith(img_name):
-                    foundLabel = line
-                    break
-                elif not line:
-                    foundLabel = None
-                    break
+        if label is None:
+            print("Could not find a label for this ROI image. Please check labels.txt file")
+            label = 0
 
-        if foundLabel is None:
-            # print("Could not find a label for this ROI image. Please check labels.txt file")
-            foundLabel = None
-        else:
-            # print("Found label:   {}".format(foundLabel))
-            split_label = foundLabel.split(" ")
-            label = int(split_label[1])
         return image, label
 
     def __iter__(self):

@@ -100,8 +100,10 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
         # Losses for current epoch
         total_loss = 0.0
         t_2 = t.time()
+        # t_4 = t.time()
 
         for idx, data in enumerate(train_loader):
+            # print("Time loading data:   {}".format(t.time() - t_4))
             t_3 = t.time()
             imgs, labels = data[0].to(device=device), data[1].to(device=device)
             # print("LEngth of batch: {}".format(len(imgs)))
@@ -114,6 +116,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
+            # t_4 = t.time()
 
             # if idx == 2:
             #     break
@@ -182,7 +185,7 @@ if __name__ == '__main__':
     train_dir = os.path.join(os.path.abspath(args.dir), 'train')
     test_dir = os.path.join(os.path.abspath(args.dir), 'test')
 
-    train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((256, 256))])
+    train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((150, 150))])
     kitti_train_dataset = KittiData.KittiROIDataset(train_dir, training=True, transform=train_transform)
     #kitti_test_dataset = KittiData.KittiROIDataset(test_dir, training=False, transform=train_transform)
 
