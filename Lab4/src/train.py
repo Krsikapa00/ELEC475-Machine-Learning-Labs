@@ -64,8 +64,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
             # t_4 = t.time()
 
-            if idx == 2:
-                break
+            # if idx == 2:
+            #     break
 
 
         if encoder_save is not None:
@@ -89,8 +89,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
                     test_output = model(imgs)
                     loss = loss_fn(test_output, labels)
                     total_test_loss += loss.item()
-                    if idx == 2:
-                        break
+                    # if idx == 2:
+                    #     break
             model.train()
         test_t2 = t.time() - test_t1
 
