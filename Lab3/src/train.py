@@ -287,6 +287,6 @@ if __name__ == '__main__':
                                                      min_lr=args.minlr)
 
     # Train the model
-    train(args.e, optimizer, vanilla_model, loss_fn, cifar_data, scheduler, device, args.s,
+    train(args.e, optimizer, model, loss_fn, cifar_data, scheduler, device, args.s,
           args.p, pickleLosses=args.starting_pickle, evaluate_epochs=True, folder=args.out, store_data=True,
           arguments=args, test_loader=cifar_test_data)
