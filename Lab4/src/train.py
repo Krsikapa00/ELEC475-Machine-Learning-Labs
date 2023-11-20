@@ -16,6 +16,65 @@ import time as t
 import YodaModel as model
 import KiitiROIDataset as KittiData
 
+
+
+def get_output_accuracy(pred, confirmed, top_res=(1,)):
+    max_num_results = max(top_res) #get highest result looking for
+    data_size = confirmed.size(0)
+
+    pred_values, pred_indx = pred.topk(k=max_num_results, dim=1)
+    pred_indx = pred_indx.t()
+#   Reshape confirmed indxs
+    confirmed_indx_reshape = confirmed.view(1, -1).expand_as(pred_indx)
+    answers = pred_indx == confirmed_indx_reshape
+
+    top_res_acc = []
+    for k in top_res:
+        temp_answers = answers[:k] #limit each image answer to k values
+        temp_answers = temp_answers.reshape(-1).float() #flatten to see whats right form ALL images in batch
+        temp_answers = temp_answers.float().sum(dim=0, keepdim=True)
+        curr_acc = temp_answers/data_size
+        top_res_acc.append(curr_acc)
+    return top_res_acc
+
+def eval_acc_for_epoch(data, model, device, test=False):
+    tot_top1_accuracy = 0
+    type = "Training Data"
+    if test:
+        type = "Test Data"
+    for idx, (imgs, labels) in enumerate(data):
+        imgs = imgs.to(device)
+        labels = labels.to(device)
+
+        with torch.no_grad():
+            output = model(imgs)
+        [curr_top1] = get_output_accuracy(output, labels, (1,))
+        tot_top1_accuracy += curr_top1
+        # if idx == 1:
+        #     break
+
+        print("{} Accuracy progress: {}/{}".format(type, idx, len(data)))
+    return tot_top1_accuracy
+def evaluate_epoch_acc(model, data, device, test_loader=None):
+    model.eval() #Set to evaluate
+    tot_top1_accuracy = 0
+    test_tot_top1_accuracy = 0
+    print("Accuracy for Training Data:")
+    tot_top1_accuracy = eval_acc_for_epoch(data, model, device)
+    avg_test_top1_epoch_acc = 0
+    print("Accuracy for Test Data:")
+
+    if test_loader is not None:
+        test_tot_top1_accuracy = eval_acc_for_epoch(test_loader, model, device, True)
+    avg_test_top1_epoch_acc = test_tot_top1_accuracy / len(test_loader)
+    avg_top1_epoch_acc = tot_top1_accuracy / len(data)
+
+    model.train() #Set to train when returning to function
+
+    return avg_top1_epoch_acc, avg_test_top1_epoch_acc
+
+
+
 def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
           encoder_save=None, plot_file=None, pickleLosses = None,
           starting_epoch=1, evaluate_epochs=False, folder='./', store_data=False, test_loader=None):
@@ -23,6 +82,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
     model.train()
     total_losses = []
     total_test_losses = []
+    total_top1_accuracy = []
+    test_total_top1_accuracy = []
 
     final_loss = 0.0
     final_test_loss = 0.0
@@ -31,15 +92,15 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
     print("Training started at Epoch {}     @ {}\n".format(starting_epoch, datetime.datetime.now()))
 
     # loading_saved pickle data
-    # if pickleLosses is not None:
-    #     try:
-    #         with open(pickleLosses, 'rb') as file:
-    #             loaded_losses = pickle.load(file)
-    #             (total_losses, content_losses, style_losses) = loaded_losses
-    #             print("Loaded saved losses from file successfully: \n{} \n{} \n{}"
-    #                   .format(total_losses, content_losses, style_losses))
-    #     except Exception as e:
-    #         print(f"An error occurred while loading arrays: {str(e)}")
+    if pickleLosses is not None:
+        try:
+            with open(pickleLosses, 'rb') as file:
+                loaded_losses = pickle.load(file)
+                (total_losses, total_test_losses, epoch) = loaded_losses
+                print("Loaded saved losses from file successfully: \n{} \n{}"
+                      .format(total_losses, total_test_losses))
+        except Exception as e:
+            print(f"An error occurred while loading arrays: {str(e)}")
 
 
     for epoch in range(starting_epoch, n_epochs + 1):
@@ -63,13 +124,14 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
             # t_4 = t.time()
-
             # if idx == 2:
             #     break
 
-
         if encoder_save is not None:
-            torch.save(model.encoder.state_dict(), encoder_save)
+            save_name = os.path.join(os.path.abspath(folder), encoder_save)
+            save_name_entire = os.path.join(os.path.abspath(folder), 'full_' + encoder_save)
+            torch.save(model.encoder.state_dict(), save_name)
+            torch.save(model.state_dict(), save_name_entire)
             print("Saved frontend model under name: {}".format(encoder_save))
 
         scheduler.step(total_loss)
@@ -79,6 +141,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
         # Evaluate model on test dataset
         test_t1 = t.time()
         if test_loader is not None:
+            print("Evaluating model against Test Data for epoch: {}".format(epoch))
             model.eval()
             with torch.no_grad():
                 for idx, data in enumerate(test_loader):
@@ -91,11 +154,22 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
                     total_test_loss += loss.item()
                     # if idx == 2:
                     #     break
+                    print('Test Batch #{}/{}         Time: {}'.format(idx + 1, len(test_loader), (t.time() - t_3)))
+
             model.train()
         test_t2 = t.time() - test_t1
 
         total_test_losses.append(total_test_loss / len(test_loader))
         final_test_loss = total_test_loss / len(test_loader)
+
+        if evaluate_epochs:
+            print("Testing Model Accuracy for Epoch: {}".format(epoch))
+            top_1_acc, test_top_1_acc = evaluate_epoch_acc(model, train_loader, device, test_loader=test_loader)
+            total_top1_accuracy.append(float(top_1_acc))
+            print("Accuracy (Training Data) = TOP-1:   {}  ".format(top_1_acc))
+            if test_loader is not None:
+                test_total_top1_accuracy.append(float(test_top_1_acc))
+            print("Accuracy (Test Data) = TOP-1:   {} ".format(test_top_1_acc))
 
         # Plot loss data each epoch
         if plot_file is not None:
@@ -111,23 +185,26 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             plt.savefig(plot_save)
 
         # Store loss data in pickled file
-        pickleSave = os.path.join(os.path.abspath(folder), "pickled_dump.pk1")
+        encdoer_prefix = encoder_save[:-4]
+        pickleSave = os.path.join(os.path.abspath(folder), (str(encdoer_prefix) + "_pickled.pk1"))
         if pickleLosses is not None:
             pickleSave = os.path.join(os.path.abspath(folder), pickleLosses)
         try:
             with open(pickleSave, 'wb') as file:
-                pickle.dump((total_losses, epoch), file)
+
+                pickle.dump((total_losses, total_test_losses, total_top1_accuracy, test_total_top1_accuracy, epoch)
+                            , file)
+
                 print("Saved losses to '{}'".format(pickleSave))
         except Exception as e:
             print(f"An error occurred while saving arrays: {str(e)}")
         print('Epoch {}, Training loss {}, Time  {}'.format(epoch, final_loss,(t.time() - t_2)))
-        print('          Test loss     {}, Time  {}'.format(epoch, final_test_loss, test_t2))
-        # if evaluate_epochs:
+        print('          Test loss     {}, Time  {}'.format(final_test_loss, test_t2))
 
-
-    print('Total Training loss {}, Time  {}'.format(final_loss, (t.time() - t_1)))
+    print('Total Training loss {}      Test Training Loss:    {}    ,  Time  {}'
+          .format(final_loss, final_test_loss, (t.time() - t_1)))
     print('Time finished {}'.format(datetime.datetime.now()))
-    return final_loss
+    return final_loss, final_test_loss
 
 
 if __name__ == '__main__':
@@ -154,7 +231,8 @@ if __name__ == '__main__':
     parser.add_argument('-minlr', '--minlr', type=float, default=0.001)
     parser.add_argument('-out', '--out', default=None, help="Output folder to put all files for training run")
     parser.add_argument('-gamma', '--gamma', type=float, default=0.9)
-    parser.add_argument('-dataset', '--dataset', type=int, default=1)
+    parser.add_argument('-start_epoch', '--start_epoch', type=int, default=1)
+    parser.add_argument('-start_pickle', '--start_pickle', default=None)
 
     args = parser.parse_args()
 
@@ -174,21 +252,21 @@ if __name__ == '__main__':
     train_data = DataLoader(kitti_train_dataset, batch_size=args.b, shuffle=True)
     test_data = DataLoader(kitti_test_dataset, batch_size=args.b, shuffle=False)
 
-
-    encoder = model.encoder_decoder.encoder
+    model = model.model()
+    model.load_state_dict()
     if args.l is not None:
-        encoder.load_state_dict(torch.load(args.l))
+        model.load_state_dict(torch.load(args.l))
 
 
     # # Creating folder to store all files made during training
-    # if args.out != None:
-    #     if os.path.exists(os.path.abspath(args.out)):
-    #         print("Saving all files created to folder '{}'".format(args.out))
-    #     else:
-    #         os.mkdir(args.out)
-    #         print("Created folder {} to save all files made during training".format(args.out))
-    # else:
-    #     args.out = "./"
+    if args.out != None:
+        if os.path.exists(os.path.abspath(args.out)):
+            print("Saving all files created to folder '{}'".format(args.out))
+        else:
+            os.mkdir(args.out)
+            print("Created folder {} to save all files made during training".format(args.out))
+    else:
+        args.out = "./"
 
     # Set the device (GPU if available, otherwise CPU)
     if torch.cuda.is_available() and args.cuda == 'Y':
@@ -202,7 +280,6 @@ if __name__ == '__main__':
     print("Using device: {}".format(device))
 
     loss_fn = nn.functional.cross_entropy
-    model = model.model(encoder)
     model.to(device)
 
     # Define optimizer and learning rate scheduler
@@ -217,5 +294,6 @@ if __name__ == '__main__':
 
 
     # Train the model
-    train(args.e, optimizer, model, loss_fn, train_data, scheduler, device, args.s,
-           plot_file=args.p, evaluate_epochs=False, store_data=True, test_loader=test_data)
+    train(args.e, optimizer, model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle,
+          plot_file=args.p, evaluate_epochs=True, store_data=True, test_loader=test_data, folder=args.out,
+          starting_epoch=args.start_epoch)
