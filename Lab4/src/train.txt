@@ -1,10 +1,13 @@
 #RUN FROM LAB 4 DIRECTORY
 python ./src/train.py -dir ./Kitti8_ROIs/ -e 1 -b 48
 
+#With original model where last layer of resnet18 was made to 2 output layer
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 10 -s encoder.pth -b 256 -p loss_plot.png -lr 0.0001 -wd 0.0001 -out test1
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 10 -s encoder.pth -b 256 -p loss_plot.png -lr 0.001 -wd 0.0001 -out test2
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 10 -s encoder.pth -b 256 -p loss_plot.png -lr 0.0001 -wd 0.00001 -out test3
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 10 -s encoder.pth -b 256 -p loss_plot.png -lr 0.000001 -wd 0.0001 -out test4
+
+#Kept last layer of resnet-18 and added a dropout before final layer
+python ./src/train.py -dir ./Kitti8_ROIs/ -e 10 -s encoder.pth -b 256 -p loss_plot.png -lr 0.0001 -wd 0.0001 -out test5
 
 
-Get img number from name
-open labels.txt file from directory
-iterate through each line in file
-Find line that starts w image name
-Check what value is on the line. return the integer (0, 1)
