@@ -8,7 +8,7 @@ from KittiDataset import KittiDataset
 from KittiAnchors import Anchors
 
 save_ROIs = True
-max_ROIs = -1
+max_ROIs = 5
 
 def strip_ROIs(class_ID, label_list):
     ROIs = []
@@ -241,14 +241,14 @@ def main():
     #
     # print(labels)
     #
-    if save_ROIs == True:
-        with open(os.path.join(output_dir, label_file), 'w') as f:
-            for k in range(len(labels)):
-                filename = labels[k][0]
-                name_class = str(labels[k][1])
-                name = labels[k][2]
-                f.write(filename + ' ' + name_class + ' ' + name + '\n')
-        f.close()
+    # if save_ROIs == True:
+    #     with open(os.path.join(output_dir, label_file), 'w') as f:
+    #         for k in range(len(labepython KittiToYodaROIs.py -i ../Kitti8 -o ../Kitti8_ROIs/train -m trainls)):
+    #             filename = labels[k][0]
+    #             name_class = str(labels[k][1])
+    #             name = labels[k][2]
+    #             f.write(filename + ' ' + name_class + ' ' + name + '\n')
+    #     f.close()
 
 
 ###################################################################

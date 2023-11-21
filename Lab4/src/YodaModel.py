@@ -3,8 +3,11 @@ import torchvision.models
 from torchvision.models.resnet import ResNet18_Weights
 
 class encoder_decoder:
-
     encoder = torchvision.models.resnet18(weights=ResNet18_Weights.DEFAULT)
+
+    nfeature = encoder.fc.in_features
+    encoder.fc = nn.Linear(nfeature,2)
+
     nfeature = encoder.fc.out_features
 
     frontend = nn.Sequential(

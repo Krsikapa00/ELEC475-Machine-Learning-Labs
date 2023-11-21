@@ -39,6 +39,7 @@ def get_output_accuracy(pred, confirmed, top_res=(1,)):
 
 def eval_acc_for_epoch(data, model, device, test=False):
     tot_top1_accuracy = 0
+    truePos, trueNeg, falsePos, falseNeg = 0
     type = "Training Data"
     if test:
         type = "Test Data"
@@ -50,17 +51,23 @@ def eval_acc_for_epoch(data, model, device, test=False):
             output = model(imgs)
         [curr_top1] = get_output_accuracy(output, labels, (1,))
         tot_top1_accuracy += curr_top1
+        output_rounded = torch.round(output)
+        truePos += torch.sum((output_rounded == 1) & (labels == 1)).item()
+        trueNeg += torch.sum((output_rounded == 0) & (labels == 0)).item()
+        falsePos += torch.sum((output_rounded == 1) & (labels == 0)).item()
+        falseNeg += torch.sum((output_rounded == 0) & (labels == 1)).item()
+
         # if idx == 1:
         #     break
 
         print("{} Accuracy progress: {}/{}".format(type, idx, len(data)))
-    return tot_top1_accuracy
+    return tot_top1_accuracy, (truePos, trueNeg, falsePos, falseNeg)
 def evaluate_epoch_acc(model, data, device, test_loader=None):
     model.eval() #Set to evaluate
     tot_top1_accuracy = 0
     test_tot_top1_accuracy = 0
     print("Accuracy for Training Data:")
-    tot_top1_accuracy = eval_acc_for_epoch(data, model, device)
+    tot_top1_accuracy, confusion_matrix = eval_acc_for_epoch(data, model, device)
     avg_test_top1_epoch_acc = 0
     print("Accuracy for Test Data:")
 
@@ -223,7 +230,6 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--s', help="filename to save encoder")
     parser.add_argument('-p', '--p', help="decoder.png", default="loss_plot.png")
     parser.add_argument('-cuda', '--cuda', default='Y')
-    parser.add_argument('-type', '--type', type=int, default=0)
 
 
     parser.add_argument('-lr', '--lr', type=float, default=0.001)
@@ -252,11 +258,10 @@ if __name__ == '__main__':
     train_data = DataLoader(kitti_train_dataset, batch_size=args.b, shuffle=True)
     test_data = DataLoader(kitti_test_dataset, batch_size=args.b, shuffle=False)
 
-    model = model.model()
-    model.load_state_dict()
-    if args.l is not None:
-        model.load_state_dict(torch.load(args.l))
+    local_model = model.model()
 
+    if args.l is not None:
+        local_model.load_state_dict(torch.load(args.l))
 
     # # Creating folder to store all files made during training
     if args.out != None:
@@ -280,10 +285,10 @@ if __name__ == '__main__':
     print("Using device: {}".format(device))
 
     loss_fn = nn.functional.cross_entropy
-    model.to(device)
+    local_model.to(device)
 
     # Define optimizer and learning rate scheduler
-    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.wd)
+    optimizer = optim.Adam(local_model.parameters(), lr=args.lr, weight_decay=args.wd)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
                                                      min_lr=args.minlr)
     # TODO: DELETE TEST BELOW
@@ -294,6 +299,6 @@ if __name__ == '__main__':
 
 
     # Train the model
-    train(args.e, optimizer, model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle,
+    train(args.e, optimizer, local_model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle,
           plot_file=args.p, evaluate_epochs=True, store_data=True, test_loader=test_data, folder=args.out,
           starting_epoch=args.start_epoch)

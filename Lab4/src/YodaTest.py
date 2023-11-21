@@ -18,6 +18,23 @@ from KittiAnchors import Anchors
 save_ROIs = True
 max_ROIs = -1
 
+class CustomImageDataset(Dataset):
+    def __init__(self, image_list, bounding, transform=None):
+        self.image_list = image_list
+        self.transform = transform
+        self.bounding = bounding
+
+    def __len__(self):
+        return len(self.image_list)
+
+    def __getitem__(self, idx):
+        image = self.image_list[idx]
+        box = self.bounding[idx]
+        if self.transform:
+            image = self.transform(image)
+
+        return image, box
+
 
 def calc_mean_IoU(self, ROI, ROI_list):
     sum_IoU = 0
@@ -27,38 +44,14 @@ def calc_mean_IoU(self, ROI, ROI_list):
     mean_IoU = sum_IoU / len(ROI_list)
     return mean_IoU
 
+
 def generate_ROIs(dataset, anchors):
-    i = 0
     for item in enumerate(dataset):
         idx = item[0]
         image = item[1][0]
-        label = item[1][1]
-        # print(i, idx, label)
-
-        idx = dataset.class_label['Car']
-        #car_ROIs = dataset.strip_ROIs(class_ID=idx, label_list=label)
-        # print(car_ROIs)
-        # for idx in range(len(car_ROIs)):
-        # print(ROIs[idx])
 
         anchor_centers = anchors.calc_anchor_centers(image.shape, anchors.grid)
-        if show_images:
-            image1 = image.copy()
-            for j in range(len(anchor_centers)):
-                x = anchor_centers[j][1]
-                y = anchor_centers[j][0]
-                cv2.circle(image1, (x, y), radius=4, color=(255, 0, 255))
-
         ROIs, boxes = anchors.get_anchor_ROIs(image, anchor_centers, anchors.shapes)
-        # print('break 555: ', boxes)
-
-        #ROI_IoUs = []
-        #for idx in range(len(ROIs)):
-        #    ROI_IoUs += [anchors.calc_max_IoU(boxes[idx], car_ROIs)]
-
-        # print(ROI_IoUs)
-
-        #Removed code
 
     return ROIs, boxes
 
@@ -70,13 +63,11 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-image_dir', '--image_dir', type=str, required=True,
-                        help='Directory path to a batch of content images')
 
-    parser.add_argument('--model_file', type=str, help='model weight file')
-    parser.add_argument('--cuda', type=str, help='[y/N]')
+    parser.add_argument('-model_file', type=str, help='model weight file')
+    parser.add_argument('-cuda', type=str, help='[y/N]')
     parser.add_argument('-type', '--type', type=int, default=0)
-    #parser.add_argument('-b', '--b', type=int, default=512)
+    # parser.add_argument('-b', '--b', type=int, default=512)
     parser.add_argument('-dataset', '--dataset', type=int, default=1)
 
     parser.add_argument('-i', metavar='input_dir', type=str, help='input dir (./)')
@@ -87,10 +78,6 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     # torch.cuda.empty_cache()
-
-    use_cuda = False
-    if opt.cuda == 'y' or opt.cuda == 'Y':
-        use_cuda = True
 
     if torch.cuda.is_available() and opt.cuda == 'Y':
         if torch.cuda.device_count() > 1:
@@ -118,38 +105,28 @@ if __name__ == '__main__':
         if opt.d == 'y' or opt.d == 'Y':
             show_images = True
 
-    use_cuda = False
-    if opt.cuda != None:
-        if opt.cuda == 'y' or opt.cuda == 'Y':
-            use_cuda = True
-
     training = True
     if opt.m == 'test':
         training = False
 
-
     train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((150, 150))])
 
-    batch_size = 48 #48 ROIs generated per image
+    batch_size = 48  # 48 ROIs generated per image
 
     # Load kitti data
     dataset = KittiDataset(input_dir, training=training)
     anchors = Anchors()
 
-    ROIs, boxes = generate_ROIs(dataset, anchors) #return roi_dataset
+    # ROIs, boxes = generate_ROIs(dataset, anchors)  # return roi_dataset
+    # roi_data = DataLoader(ROIs, batch_size=batch_size, shuffle=False)
 
+    # roi_dataset = custData.custom_dataset(ROIs, transform= train_transform)
+    # num_batches = int(len(roi_dataset) / batch_size)
 
-    roi_dataset = custData.custom_dataset(ROIs, transform= train_transform)
-    num_batches = int(len(roi_dataset) / batch_size)
-
-    roi_data = DataLoader(roi_dataset, batch_size= batch_size, shuffle=True)
-
+    # Load saved yodamodel
     model_file = opt.model_file
-
     model = yoda.model()
     model.load_state_dict(torch.load(opt.model_file))
-
-
     model.to(device=device)
     model.eval()
 
@@ -157,99 +134,69 @@ if __name__ == '__main__':
     print("Using device: {}".format(device))
 
     out_tensor = None
+    print("Starting Test")
+    for item in enumerate(dataset):
+        idx = item[0]
+        print("Img testing {}/{}".format(idx, len(dataset)))
+        # Original Kitti img
+        image = item[1][0]
+        label = item[1][1]
+        # Get car label indx
+        idx = dataset.class_label['Car']
 
-    with torch.no_grad():
-        top1_count = 0
-        top1_train_count = 0
-        top5_count = 0
-        top5_train_count = 0
-        print("Going through TEST dataset")
+        # Get all of the CAR ROIS for this img Truth ones
+        car_ROIs = dataset.strip_ROIs(class_ID=idx, label_list=label)
 
-        i = 0
-        for idx, data in enumerate(roi_data):
-            t_3 = t.time()
-            imgs, label = data[0].to(device), data[1].to(device)
-            out_tensor = model(imgs)
+        anchor_centers = anchors.calc_anchor_centers(image.shape, anchors.grid)
+        # Generate ROIs for each image
 
-            #idx = item[0]
-            #label = item[1][1]
+        print("Generating ROI's for img")
+        ROIs, boxes = anchors.get_anchor_ROIs(image, anchor_centers, anchors.shapes)
+        print("Done getting ROI's")
 
-            car_ROIs = out_tensor.strip_ROIs(class_ID=idx, label_list=label)
+        ROI_IoUs = []
+        for idx in range(len(ROIs)):
+            ROI_IoUs += [anchors.calc_max_IoU(boxes[idx], car_ROIs)]
 
-            ROI_IoUs = []
-            for idx in range(len(ROIs)):
-                ROI_IoUs += [anchors.calc_max_IoU(boxes[idx], car_ROIs)]
+        # Put ROIs through model
+        roi_dataset = CustomImageDataset(ROIs, boxes, train_transform)
 
-            sum_IoU = 0
+        with torch.no_grad():
+            print("About to put ROI's through model")
+            roi_data = DataLoader(roi_dataset, batch_size=48, shuffle=False)
+            for data in roi_data:
+                roi_imgs, labels = data[0].to(device=device), data[1]
+                output = model(roi_imgs)
+                print("output of model ROI imgs: {}".format(output))
 
-            for ROI_val in ROI_IoUs:
-                sum_IoU = sum_IoU + ROI_val
+                output_rounded = torch.round(output)
+                print("Output rounded: {}".format(output_rounded))
+                # Car_labels = (output_rounded.item() == 1)
 
-            mean_IoU = sum_IoU / len(ROI_IoUs)
-            
+                for idx, item in enumerate(output_rounded):
+                    print("Predicted ROI {}:    {}".format(idx, torch.argmax(item)))
+
+        sum_IoU = 0
+
+        for ROI_val in ROI_IoUs:
+            sum_IoU = sum_IoU + ROI_val
+        mean_IoU = sum_IoU / len(ROI_IoUs)
+
+        if show_images:
+            image2 = image.copy()
 
             for k in range(len(boxes)):
-                filename = str(i) + '_' + str(k) + '.png'
-                if save_ROIs == True:
-                    cv2.imwrite(os.path.join(output_dir, filename), ROIs[k])
-                name_class = 0
-                name = 'NoCar'
-                if ROI_IoUs[k] >= IoU_threshold:
-                    name_class = 1
-                    name = 'Car'
-                labels += [[filename, name_class, name]]
+                if ROI_IoUs[k] > IoU_threshold:
+                    box = boxes[k]
+                    pt1 = (box[0][1], box[0][0])
+                    pt2 = (box[1][1], box[1][0])
+                    cv2.rectangle(image2, pt1, pt2, color=(0, 255, 255))
 
-            if show_images:
-                cv2.imshow('image', image1)
-                # key = cv2.waitKey(0)
-                # if key == ord('x'):
-                #     break
-
-            if show_images:
-                image2 = image1.copy()
-
-                for k in range(len(boxes)):
-                    if ROI_IoUs[k] > IoU_threshold:
-                        box = boxes[k]
-                        pt1 = (box[0][1], box[0][0])
-                        pt2 = (box[1][1], box[1][0])
-                        cv2.rectangle(image2, pt1, pt2, color=(0, 255, 255))
-
-            if show_images:
-                cv2.imshow('boxes', image2)
-                key = cv2.waitKey(0)
-                if key == ord('x'):
-                    break
-            i += 1
-            print(i)
-
-            if max_ROIs > 0 and i >= max_ROIs:
+        if show_images:
+            cv2.imshow('boxes', image2)
+            key = cv2.waitKey(0)
+            if key == ord('x'):
                 break
-            #
-            # print(labels)
-            #
-        if save_ROIs == True:
-            with open(os.path.join(output_dir, label_file), 'w') as f:
-                for k in range(len(labels)):
-                    filename = labels[k][0]
-                    name_class = str(labels[k][1])
-                    name = labels[k][2]
-                    f.write(filename + ' ' + name_class + ' ' + name + '\n')
-            f.close()
 
-
-
-
-        _, top1_predicted = torch.max(out_tensor, 1)
-        _, top5_predictions = torch.topk(out_tensor, 5, dim=1)
-
-        top1_count += torch.sum(labels == top1_predicted).item()
-
-        # for i in range(len(labels)):
-        #    if labels[i] in top5_predictions[i]:
-        #        top5_count += 1
-        top5_count += torch.sum(top5_predictions == labels.view(-1, 1))
-
-        print('Image #{}/{}         Time: {}'.format(idx + 1, len(cifar_data), (t.time() - t_3)))
 
 
