@@ -24,7 +24,7 @@ def get_output_accuracy(pred, confirmed, top_res=(1,)):
 
     pred_values, pred_indx = pred.topk(k=max_num_results, dim=1)
     pred_indx = pred_indx.t()
-#   Reshape confirmed indxs
+    #   Reshape confirmed indxs
     confirmed_indx_reshape = confirmed.view(1, -1).expand_as(pred_indx)
     answers = pred_indx == confirmed_indx_reshape
 
@@ -56,9 +56,6 @@ def eval_acc_for_epoch(data, model, device, test=False):
         trueNeg += torch.sum((output_rounded == 0) & (labels == 0)).item()
         falsePos += torch.sum((output_rounded == 1) & (labels == 0)).item()
         falseNeg += torch.sum((output_rounded == 0) & (labels == 1)).item()
-
-        # if idx == 1:
-        #     break
 
         print("{} Accuracy progress: {}/{}".format(type, idx, len(data)))
     return tot_top1_accuracy, (truePos, trueNeg, falsePos, falseNeg)
@@ -130,16 +127,11 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
-            # t_4 = t.time()
-            # if idx == 2:
-            #     break
 
         if encoder_save is not None:
             save_name = os.path.join(os.path.abspath(folder), encoder_save)
-            save_name_entire = os.path.join(os.path.abspath(folder), 'full_' + encoder_save)
-            torch.save(model.encoder.state_dict(), save_name)
-            torch.save(model.state_dict(), save_name_entire)
-            print("Saved frontend model under name: {}".format(encoder_save))
+            torch.save(model.state_dict(), save_name)
+            print("Saved model under name: {}".format(encoder_save))
 
         scheduler.step(total_loss)
         total_losses.append(total_loss / len(train_loader))
@@ -152,16 +144,13 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             model.eval()
             with torch.no_grad():
                 for idx, data in enumerate(test_loader):
-                    # print("Time loading data:   {}".format(t.time() - t_4))
                     t_3 = t.time()
                     imgs, labels = data[0].to(device=device), data[1].to(device=device)
 
                     test_output = model(imgs)
                     loss = loss_fn(test_output, labels)
                     total_test_loss += loss.item()
-                    # if idx == 2:
-                    #     break
-                    print('Test Batch #{}/{}         Time: {}'.format(idx + 1, len(test_loader), (t.time() - t_3)))
+                    print('Validation Batch #{}/{}         Time: {}'.format(idx + 1, len(test_loader), (t.time() - t_3)))
 
             model.train()
         test_t2 = t.time() - test_t1
@@ -216,8 +205,6 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
 
 if __name__ == '__main__':
 
-    # ssl._create_default_https_context = ssl._create_unverified_context
-
     device = 'cpu'
     # Setup parser
     parser = argparse.ArgumentParser()
@@ -244,8 +231,6 @@ if __name__ == '__main__':
 
     print("Beginning Training for model. Using the following parameters passed (Some default)\n")
     print("\n{}".format(args))
-
-
 
     # Import the dataset & get num of batches
     train_dir = os.path.join(os.path.abspath(args.dir), 'train')
@@ -291,12 +276,6 @@ if __name__ == '__main__':
     optimizer = optim.Adam(local_model.parameters(), lr=args.lr, weight_decay=args.wd)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
                                                      min_lr=args.minlr)
-    # TODO: DELETE TEST BELOW
-    # print("Getting first img")
-    # for idx, data in enumerate(train_data):
-    #     print("IDX: {}    Img: {}      Label: {}".format(idx, data[0], data[1]))
-    #     break
-
 
     # Train the model
     train(args.e, optimizer, local_model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle,

@@ -16,15 +16,13 @@ class encoder_decoder:
     )
 class model(nn.Module):
 
-    def __init__(self, encoder=None, type=True):
+    def __init__(self, encoder=None):
         super(model, self).__init__()
         self.encoder = encoder
         self.frontend = encoder_decoder.frontend
 
         if self.encoder is None:
-            # if type:
-            #     self.encoder = encoder_decoder.encoder
-            # else:
+
             self.encoder = encoder_decoder.encoder
 
             self.init_encoder_weights(mean=0.0, std=0.01)

@@ -63,14 +63,14 @@ def eval_acc_for_epoch(data, model, device, test=False):
 
         print("{} Accuracy progress: {}/{}".format(type, idx, len(data)))
     return tot_top1_accuracy, (truePos, trueNeg, falsePos, falseNeg)
+
 def evaluate_epoch_acc(model, data, device, test_loader=None):
     tot_top1_accuracy = 0
     test_tot_top1_accuracy = 0
-    print("Accuracy for Training Data:")
+    print("Accuracy for Test Data:")
     tot_top1_accuracy, confusion_matrix = eval_acc_for_epoch(data, model, device)
     avg_test_top1_epoch_acc = 0
     test_confusion_matrix = ()
-    print("Accuracy for Test Data:")
 
     if test_loader is not None:
         test_tot_top1_accuracy, test_confusion_matrix = eval_acc_for_epoch(test_loader, model, device, True)
@@ -78,9 +78,6 @@ def evaluate_epoch_acc(model, data, device, test_loader=None):
     avg_top1_epoch_acc = tot_top1_accuracy / len(data)
 
     return avg_top1_epoch_acc, avg_test_top1_epoch_acc, confusion_matrix, test_confusion_matrix
-
-
-
 
 
 if __name__ == '__main__':
@@ -103,8 +100,6 @@ if __name__ == '__main__':
     print("Beginning Training for model. Using the following parameters passed (Some default)\n")
     print("\n{}".format(args))
 
-
-
     # Import the dataset & get num of batches
     train_dir = os.path.join(os.path.abspath(args.dir), 'train')
     test_dir = os.path.join(os.path.abspath(args.dir), 'test')
@@ -113,7 +108,6 @@ if __name__ == '__main__':
     kitti_train_dataset = KittiData.KittiROIDataset(train_dir, training=True, transform=train_transform)
     kitti_test_dataset = KittiData.KittiROIDataset(test_dir, training=False, transform=train_transform)
 
-    train_data = DataLoader(kitti_train_dataset, batch_size=args.b, shuffle=True)
     test_data = DataLoader(kitti_test_dataset, batch_size=args.b, shuffle=False)
 
     model = model.model()
@@ -136,9 +130,7 @@ if __name__ == '__main__':
     model.to(device)
     model.eval()
 
-    avg_acc, avg_test_acc, confusion_matrix, test_confusion_matrix = evaluate_epoch_acc(model, train_data, device, test_data)
+    avg_acc, avg_test_acc, confusion_matrix, test_confusion_matrix = evaluate_epoch_acc(model, test_data, device)
 
     print("Accuracy: {}".format(avg_acc))
-    print("Test Accuracy: {}".format(avg_test_acc))
     print("Confusion matrix: {}".format(confusion_matrix))
-    print("Test Confusion matrix: {}".format(test_confusion_matrix))
