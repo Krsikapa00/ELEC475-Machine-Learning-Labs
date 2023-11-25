@@ -1,0 +1,1 @@
+ python ./YodaTest.py -b 256 -i ./Kitti8 -m test -d y -cuda y -model_file .\encoder.pth

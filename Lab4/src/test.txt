@@ -1,0 +1,1 @@
+python ./test.py -dir ./Kitti8_ROIs/ -l encoder.pth
