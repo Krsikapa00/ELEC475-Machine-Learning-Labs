@@ -1,0 +1,6 @@
+Training with
+python ./src/train.py -e 25 -b 100 -cuda Y -out ./test3 -dir images -lr 0.00001 -wd 0.0001
+python ./src/train.py -e 25 -b 100 -cuda Y -out ./test4 -dir images -lr 0.001 -wd 0.001
+
+
+python ./src/test.py -b 100 -cuda Y -dir images -l ./test3/25_encoder.pth

@@ -16,11 +16,12 @@ import time as t
 import NoseModel as model
 import NoseDataset as NoseData
 
-def get_euclidean_distance(predicted, confirmed, imageW, imageH):
+def get_euclidean_distance(predicted, confirmed, imageW=300, imageH=300):
+
     euclidean_dis = torch.sum((confirmed - predicted) ** 2, dim=1)
     euclidean_dis = torch.sqrt(euclidean_dis)
 
-    image_diagonal = torch.sqrt(imageW ** 2 + imageH ** 2)
+    image_diagonal = torch.sqrt(torch.tensor(imageW ** 2) + torch.tensor(imageH ** 2))
     normalized_euclidean = (euclidean_dis/image_diagonal) * 100
     return normalized_euclidean
 
@@ -33,15 +34,17 @@ def eval_acc_for_epoch(data, model, device, test=False):
         type = "Test Data"
     for idx, (imgs, labels) in enumerate(data):
         imgs = imgs.to(device)
+        print("Img size: {}".format(imgs.size(0)))
         labels = labels.to(device)
 
         with torch.no_grad():
             output = model(imgs)
-        total_distance = get_euclidean_distance(output, labels, )
+        total_distance = get_euclidean_distance(output, labels)
         total_imgs += labels.size(0)
 
         print("{} Accuracy progress: {}/{}".format(type, idx, len(data)))
-    average_distance = total_distance/total_imgs * 100
+    average_distance = total_distance/total_imgs
+    average_distance = average_distance * 100
     return average_distance
 def evaluate_epoch_acc(model, data, device, test_loader=None):
     model.eval() #Set to evaluate
@@ -54,7 +57,7 @@ def evaluate_epoch_acc(model, data, device, test_loader=None):
         test_accuracy = eval_acc_for_epoch(test_loader, model, device, True)
 
     model.train() #Set to train when returning to function
-
+    print("Accuracies:   {}\nTest:   {}".format(train_accuracy, test_accuracy))
     return train_accuracy, test_accuracy
 
 
@@ -108,8 +111,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             total_loss += loss.item()
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
 
-        if encoder_save is not None:
-            save_name = os.path.join(os.path.abspath(folder), encoder_save)
+        if encoder_save is not None and (epoch % 20 == 0 or epoch == n_epochs):
+            save_name = os.path.join(os.path.abspath(folder), str(epoch) + '_' + encoder_save)
             torch.save(model.state_dict(), save_name)
             print("Saved model under name: {}".format(encoder_save))
 
@@ -211,7 +214,6 @@ if __name__ == '__main__':
     parser.add_argument('-out', '--out', default=None, help="Output folder to put all files for training run")
     parser.add_argument('-start_epoch', '--start_epoch', type=int, default=1)
     parser.add_argument('-start_pickle', '--start_pickle', default=None)
-
     args = parser.parse_args()
 
     print("Beginning Training for model. Using the following parameters passed (Some default)\n")
@@ -220,7 +222,7 @@ if __name__ == '__main__':
     # Import the dataset & get num of batches
     image_dir = os.path.abspath(args.dir)
 
-    train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((150, 150))])
+    train_transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((300, 300))])
     train_dataset = NoseData.NoseDataset(image_dir, training=True, transform=train_transform)
     test_dataset = NoseData.NoseDataset(image_dir, training=False, transform=train_transform)
 
@@ -263,5 +265,5 @@ if __name__ == '__main__':
 
     # Train the model
     train(args.e, optimizer, local_model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle
-          , plot_file=args.p, evaluate_epochs=True, test_loader=test_data, folder=args.out,
+          , plot_file=args.p, evaluate_epochs=False, test_loader=test_data, folder=args.out,
           starting_epoch=args.start_epoch)
