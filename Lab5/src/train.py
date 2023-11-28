@@ -25,6 +25,17 @@ def get_euclidean_distance(predicted, confirmed, imageW=300, imageH=300):
     normalized_euclidean = (euclidean_dis/image_diagonal) * 100
     return normalized_euclidean
 
+def euclidean_loss_fn(predicted, confirmed):
+    # print("Predicted: {}".format(predicted))
+    # print("Confirmed: {}".format(confirmed))
+    # print("Size: {}".format(confirmed.size()))
+    # x_diff = (predicted - confirmed) ** 2
+    euclidean_dis = torch.sum((confirmed - predicted) ** 2, dim=1)
+    euclidean_dis = torch.sqrt(euclidean_dis).sum()
+    euclidean_dis = euclidean_dis/confirmed.size(0)
+    # print("Diff, squared: {}".format(euclidean_dis))
+    return euclidean_dis
+
 def eval_acc_for_epoch(data, model, device, test=False):
     total_distance = 0
     total_imgs = 0
@@ -104,7 +115,9 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             optimizer.zero_grad()
 
             output_labels = model(imgs)
-            loss = loss_fn(output_labels, labels)
+            loss = euclidean_loss_fn(output_labels, labels)
+            # loss2 = loss_fn(output_labels, labels)
+            # print("Losses: {}    {}".format(loss, loss2))
             loss.backward()
             optimizer.step()
 
@@ -112,7 +125,7 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
             print('Batch #{}/{}         Time: {}'.format(idx + 1, len(train_loader), (t.time() - t_3)))
 
         if encoder_save is not None and (epoch % 20 == 0 or epoch == n_epochs):
-            save_name = os.path.join(os.path.abspath(folder), str(epoch) + '_' + encoder_save)
+            save_name = os.path.join(os.path.abspath(folder), encoder_save)
             torch.save(model.state_dict(), save_name)
             print("Saved model under name: {}".format(encoder_save))
 
@@ -131,7 +144,8 @@ def train(n_epochs, optimizer, model, loss_fn, train_loader, scheduler, device,
                     imgs, labels = data[0].to(device=device), data[1].to(device=device)
 
                     test_output = model(imgs)
-                    loss = loss_fn(test_output, labels)
+                    loss = euclidean_loss_fn(test_output, labels)
+                    # loss = loss_fn(test_output, labels)
                     total_test_loss += loss.item()
                     print('Validation Batch #{}/{}         Time: {}'.format(idx + 1, len(test_loader), (t.time() - t_3)))
 
@@ -260,9 +274,10 @@ if __name__ == '__main__':
 
     # Define optimizer and learning rate scheduler
     optimizer = optim.Adam(local_model.parameters(), lr=args.lr, weight_decay=args.wd)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.1,
+    # optimizer = optim.SGD(local_model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.wd)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, verbose=True, factor=0.01,
                                                      min_lr=args.minlr)
-
+    # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=args.gamma)
     # Train the model
     train(args.e, optimizer, local_model, loss_fn, train_data, scheduler, device, args.s, pickleLosses=args.start_pickle
           , plot_file=args.p, evaluate_epochs=False, test_loader=test_data, folder=args.out,

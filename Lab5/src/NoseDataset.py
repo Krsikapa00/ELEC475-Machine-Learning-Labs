@@ -70,13 +70,13 @@ class NoseDataset(Dataset):
 
             tempLabel = curr_label[1:-1]
             tempLabel = tempLabel.split(", ")
-            print("Name: {}".format(img_name))
-            print("Shape: {}    {}".format(img_width, img_height))
-
-            print("Original Labels: {}".format(tempLabel))
+            # print("Name: {}".format(img_name))
+            # print("Shape: {}    {}".format(img_width, img_height))
+            #
+            # print("Original Labels: {}".format(tempLabel))
 
             normalized_labels = [float(tempLabel[0])/img_width, float(tempLabel[1])/img_height]
-            print("Normalized Labels: {}".format(normalized_labels))
+            # print("Normalized Labels: {}".format(normalized_labels))
 
             label = torch.tensor(normalized_labels, dtype=torch.float32)
 

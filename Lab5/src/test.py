@@ -57,10 +57,11 @@ def eval_acc_for_epoch(data, model, device, test=False):
             predicted = output[i].cpu().numpy()
             confirmed = labels[i].cpu().numpy()
             confirmed_xy = (int(confirmed[0] * 300),int(confirmed[1] * 300))
-            predicted_xy = (float(predicted[0] * 300),float(predicted[1] * 300))
+            predicted_xy = (int(predicted[0] * 300),int(predicted[1] * 300))
             print("Predicted:   {}\nConfirmed: {}".format(predicted_xy, confirmed_xy))
             # cv2.circle(imageScaled, nose, 2, (0, 0, 255), 1)
             cv2.circle(imageScaled, confirmed_xy, 2, (0, 0, 255), 1)
+            cv2.circle(imageScaled, predicted_xy, 2, (0, 255, 0), 1)
 
             cv2.imshow('boxes', imageScaled)
             key = cv2.waitKey(0)
