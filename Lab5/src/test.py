@@ -3,6 +3,7 @@ import pickle
 import ssl
 import os
 import datetime
+import math
 
 import torch.optim as optim
 import torch.nn as nn
@@ -31,6 +32,7 @@ def get_euclidean_distance(predicted, confirmed, imageW=300, imageH=300):
     return normalized_euclidean
 
 def eval_acc_for_epoch(data, model, device, test=False):
+    total_distances = []
     total_distance = 0
     total_imgs = 0
     truePos, trueNeg, falsePos, falseNeg = 0, 0, 0, 0
@@ -56,9 +58,46 @@ def eval_acc_for_epoch(data, model, device, test=False):
 
             predicted = output[i].cpu().numpy()
             confirmed = labels[i].cpu().numpy()
-            confirmed_xy = (int(confirmed[0] * 300),int(confirmed[1] * 300))
-            predicted_xy = (int(predicted[0] * 300),int(predicted[1] * 300))
+
+            preditced_x = int(predicted[0] * 300)
+            preditced_y = int(predicted[1] * 300)
+            confirmed_x = int(confirmed[0] * 300)
+            confirmed_y = int(confirmed[1] * 300)
+
+            confirmed_xy = (confirmed_x, confirmed_y)
+            predicted_xy = (preditced_x, preditced_y)
             print("Predicted:   {}\nConfirmed: {}".format(predicted_xy, confirmed_xy))
+
+            #------------------------------------------------------------------------------------------
+            predicted_mean = torch.mean(output).item()
+            predicted_mean_num = predicted_mean#.cpu().numpy()
+            mean_x = int(predicted_mean_num * 300)
+            mean_y = int(predicted_mean_num * 300)
+
+
+            #_, top5_predictions = torch.topk(out_tensor, 5, dim=1)
+
+            #top1_count += torch.sum(labels == top1_predicted).item()
+
+            euclidean_dis = math.sqrt((preditced_x - confirmed_x) ** 2 + (preditced_y - confirmed_y) ** 2)
+            #mean_euclidean_dis = math.sqrt((mean_x - confirmed_x) ** 2 + (mean_y - confirmed_y) ** 2)
+
+            print("Euclidean Distance: {}\n".format(euclidean_dis))
+            #print("Mean Euclidean Distance: {}\n".format(mean_euclidean_dis))
+
+
+            total_distances.append(euclidean_dis)
+
+            min_distance = min(total_distances)
+            max_distance = max(total_distances)
+            mean_distance = sum(total_distances) / len(total_distances)
+            std_distance = torch.tensor(total_distances).std().item()
+
+            print("Min Euclidean Distance: {}".format(min_distance))
+            print("Max Euclidean Distance: {}".format(max_distance))
+            print("Mean Euclidean Distance: {}".format(mean_distance))
+            print("Standard Deviation of Euclidean Distance: {}".format(std_distance))
+
             # cv2.circle(imageScaled, nose, 2, (0, 0, 255), 1)
             cv2.circle(imageScaled, confirmed_xy, 2, (0, 0, 255), 1)
             cv2.circle(imageScaled, predicted_xy, 2, (0, 255, 0), 1)
