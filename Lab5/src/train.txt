@@ -1,0 +1,15 @@
+Training with model that include sigmoid at end & with fixed dataset Commit 9d74dac
+python ./src/train.py -e 25 -b 100 -cuda Y -out ./test1 -dir images -lr 0.00001 -wd 0.0001
+python ./src/train.py -e 25 -b 100 -cuda Y -out ./test2 -dir images -lr 0.001 -wd 0.001
+
+
+python ./src/train.py -e 100 -b 100 -cuda Y -out ./test3 -dir images -lr 0.00001 -wd 0.0001 -minlr 0.0001 -gamma 1
+
+USing SGD and StepLR
+python ./src/train.py -e 100 -b 100 -cuda Y -out ./test5 -dir images -lr 0.00001 -wd 0.0001 -gamma 0.7
+
+Using Adam and ReduceLROnPlateau
+python ./src/train.py -e 100 -b 100 -cuda Y -out ./test6 -dir images -lr 0.0001 -wd 0.0001 -gamma 0.8 -minlr 0.00001
+
+
+python ./src/test.py -b 100 -cuda Y -dir images -l ./test3/25_encoder.pth
